@@ -1,11 +1,14 @@
 export const LIGHT_THEME_COLORS = {
   backgroundColorHex: '#f5f5f7',
-  particleColorHex: '#1a3f6f',
-  starParticleColorHex: '#0c2d5e',
-  fogColorHex: '#c8d0dc',
-  fogDensity: 0.12,
-  ambientColorHex: '#5c3800',
-  fresnelColorHex: '#2a2a40',
+  particleColorHex: '#0d3b66',
+  starParticleColorHex: '#14213d',
+  fogColorHex: '#b0bec5',
+  fogDensity: 0.08,
+  ambientColorHex: '#6d4c00',
+  fresnelColorHex: '#1a1a2e',
+  coreBrightnessMin: 0.15,
+  coreBrightnessMax: 0.5,
+  coreGlowStrength: 0.3,
 };
 
 export const DARK_THEME_COLORS = {

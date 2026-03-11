@@ -238,7 +238,11 @@ export function initScene(gl, canvas, shaders, options = {}) {
       starColor = PARTICLE_GRADIENTS[starGradientName] ?? PARTICLE_GRADIENTS[DEFAULT_GRADIENT];
     }
     gl.depthMask((opts.particleDepthWrite ?? 0) !== 0);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    if (theme === 'light') {
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    } else {
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    }
     drawParticles3D(gl, particle3DRenderer, particleStateRef.current, viewProj, {
       pointScale: opts.pointScale,
       maxRadius: opts.diskRadius ?? MAX_R3D,
