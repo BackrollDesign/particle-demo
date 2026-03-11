@@ -42,9 +42,12 @@ function run() {
     sphere3dFrag,
   };
 
-  const scene = initScene(gl, canvas, shaders, {});
+  const currentTheme = getTheme();
+  applyTheme(currentTheme);
 
-  applyTheme(getTheme());
+  const initialThemeColors = currentTheme === 'light' ? LIGHT_THEME_COLORS : DARK_THEME_COLORS;
+  const scene = initScene(gl, canvas, shaders, initialThemeColors);
+
   const filterEl = document.querySelector('[data-scene3d-filter]');
   const filterPanel = createFilterPanel(filterEl, (opt) => scene.setOptions(opt), { getOptions: () => scene.getOptions() });
   if (filterEl) {
