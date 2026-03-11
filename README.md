@@ -1,28 +1,3 @@
-# 3D scene: particle disk and core (WebGL)
-
-Component for integration on the design system landing: **3D mode only** — particle disk around the core in a gravity field, per-texture controls, wind and waves.
-
-**v3.3:** LAB filter panel, preset Save/Load/Reset (file-based), separate wave params for disk & star particles, light-theme contrasting colors, cleaned-up UI. See [CHANGELOG](CHANGELOG.md).
-
-## Quick start
-
-```bash
-npm install
-npm test              # unit tests (physics, geometry, config, layout, stress)
-npm run test:layout   # layout tests only (Figma 30-643)
-npm test -- --testPathPattern=stress  # stress tests (50k particles, 20k×60 steps)
-npm run dev           # dev server http://localhost:5173
-npm run build         # build to dist/
-npm run screenshot    # build + screenshots (Playwright)
-```
-
-**Screenshots and visual checks (Playwright):**
-
-- After `npm run build` run `npx playwright test` — preview opens, e2e tests run (Alcyone block, three cards, screenshot).
-- First `toHaveScreenshot` run saves baseline; next runs compare to baseline for visual regressions.
-- Update baselines: `npx playwright test --update-snapshots`.
-- UI mode: `npm run test:e2e:ui`.
-
 ## Documentation
 
 - **[CHANGELOG](CHANGELOG.md)** — change history.
