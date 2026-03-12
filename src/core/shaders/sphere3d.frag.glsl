@@ -30,6 +30,8 @@ uniform float u_normalStrength;
 uniform float u_specStrength;
 uniform float u_aoStrength;
 uniform vec3 u_fresnelColor;
+uniform float u_fresnelPower;
+uniform float u_fresnelStrength;
 uniform vec3 u_ambientColor;
 uniform float u_starMode;
 uniform float u_fogEnabled;
@@ -38,23 +40,26 @@ uniform float u_fogNear;
 uniform float u_fogFar;
 uniform float u_fogDensity;
 uniform vec3 u_fogColor;
+uniform float u_isGlowPass;
 
 void main() {
   vec2 uv = v_uv;
   vec3 N = normalize(v_normal);
   vec3 T = normalize(v_tangent);
   vec3 B = cross(N, T);
+  vec3 V = normalize(u_cameraPosition - v_position);
+
   if (u_textureType == 1) {
     uv = vec2(atan(N.x, N.z) / 6.28318530718 + 0.5, asin(clamp(N.y, -1.0, 1.0)) / 3.14159265359 + 0.5);
   }
+
   float disp = 0.0;
   if (u_useTexture != 0) {
     vec4 dispTex = texture2D(u_dispMap, uv);
     disp = dispTex.r;
-    vec3 viewDir = normalize(u_cameraPosition - v_position);
-    float vdx = dot(T, viewDir);
-    float vdy = dot(B, viewDir);
-    float vdz = dot(N, viewDir);
+    float vdx = dot(T, V);
+    float vdy = dot(B, V);
+    float vdz = dot(N, V);
     uv -= u_dispScale * disp * vec2(vdx, vdy) * step(0.01, abs(vdz));
   }
 
@@ -70,6 +75,7 @@ void main() {
   float diff = max(0.0, dot(n, L));
   float diffuse = u_lightIntensity * diff;
   vec3 albedo = u_color;
+
   if (u_useTexture != 0) {
     vec4 texColor = texture2D(u_texture, uv);
     albedo = mix(u_color, texColor.rgb, texColor.a * u_texStrength);
@@ -80,6 +86,7 @@ void main() {
     if (br > 0.001 && lum > 0.001) albedo *= (brMin + br * smoothstep(0.0, 1.0, lum)) / lum;
     else if (brMax > 0.001) albedo *= brMax;
   }
+
   vec3 ambientTint = u_ambientColor;
   if (ambientTint.x + ambientTint.y + ambientTint.z < 0.01) ambientTint = vec3(1.0);
   vec3 col = albedo * (u_ambientStrength * ambientTint + diffuse);
@@ -87,16 +94,15 @@ void main() {
   if (u_useTexture != 0) {
     float ao = 1.0;
     vec4 aoTex = texture2D(u_aoMap, uv);
-    if (aoTex.a > 0.01) ao = mix(1.0, aoTex.r, u_aoStrength);
+    ao = mix(1.0, aoTex.r, u_aoStrength);
     col *= ao;
 
     float specStr = u_specStrength;
     vec4 specTex = texture2D(u_specMap, uv);
-    if (specTex.a > 0.01) specStr = specTex.r * u_specStrength;
-    vec3 V = normalize(u_cameraPosition - v_position);
+    specStr = mix(u_specStrength, specTex.r * u_specStrength, step(0.01, specTex.r + specTex.g + specTex.b));
     vec3 H = normalize(L + V);
     float spec = pow(max(0.0, dot(n, H)), 32.0) * specStr;
-    col += vec3(0.4, 0.45, 0.55) * spec * u_lightIntensity;
+    col += vec3(1.0) * spec * u_lightIntensity;
   }
 
   float dist = length(v_position);
@@ -104,30 +110,45 @@ void main() {
   float edge = 1.0 - smoothstep(0.85, 1.02, normDist);
   float radialFade = 1.0 - u_glowRadial * normDist;
   float glowCore = 0.6 + 0.4 * (1.0 - normDist);
-  vec3 fresnelTint = u_fresnelColor;
-  if (fresnelTint.x + fresnelTint.y + fresnelTint.z < 0.01) fresnelTint = vec3(0.55, 0.65, 0.95);
+
   float glowMult = 1.0;
   if (u_starMode > 0.5) {
     glowMult = 2.5;
-    fresnelTint = mix(fresnelTint, vec3(0.75, 0.85, 1.0), 0.7);
     col = mix(col, vec3(0.9, 0.92, 1.0), 0.35 * (1.0 - normDist));
   }
-  col += glowMult * u_glowStrength * radialFade * glowCore * fresnelTint;
-  col += glowMult * u_glowAmbient * radialFade * glowCore * fresnelTint;
-  float bloomStrength = u_bloomEnabled * (u_bloomRange / 100.0) * (1.0 - normDist);
-  float alpha = edge * (1.0 + min(1.0, bloomStrength));
-  alpha = max(alpha, 0.15 + 0.2 * (1.0 - normDist));
+
+  float fresnel = pow(1.0 - max(0.0, dot(N, V)), u_fresnelPower);
+  vec3 fresnelContrib = u_fresnelColor * fresnel * u_fresnelStrength;
+  col += fresnelContrib;
+
+  col += glowMult * u_glowStrength * radialFade * glowCore * u_ambientColor;
+  col += glowMult * u_glowAmbient * radialFade * glowCore * u_ambientColor;
+
+  float alpha = edge;
   if (u_starMode > 0.5) alpha = max(alpha, 0.5 + 0.4 * (1.0 - normDist));
-  float fogFactor = 0.0;
+  alpha = max(alpha, 0.15 + 0.2 * (1.0 - normDist));
+
+  if (u_isGlowPass > 0.5) {
+    float bloomAmt = u_bloomRange / 100.0;
+    float glowFalloff = 1.0 - smoothstep(0.0, 1.0, normDist);
+    float glowAlpha = glowFalloff * glowFalloff * bloomAmt * 0.6;
+    vec3 glowColor = mix(u_color, u_fresnelColor, 0.3) * (u_ambientStrength + u_glowAmbient);
+    if (u_starMode > 0.5) glowColor = mix(glowColor, vec3(0.9, 0.92, 1.0), 0.5);
+    gl_FragColor = vec4(glowColor, glowAlpha);
+    return;
+  }
+
   if (u_fogEnabled > 0.5) {
-    float dist = length(u_cameraPosition - v_position);
+    float fogDist = length(u_cameraPosition - v_position);
+    float fogFactor = 0.0;
     if (u_fogType > 0.5) {
-      fogFactor = 1.0 - exp(-u_fogDensity * dist);
+      fogFactor = 1.0 - exp(-u_fogDensity * fogDist);
       fogFactor = clamp(fogFactor, 0.0, 1.0);
     } else if (u_fogFar > u_fogNear) {
-      fogFactor = clamp((dist - u_fogNear) / (u_fogFar - u_fogNear), 0.0, 1.0);
+      fogFactor = clamp((fogDist - u_fogNear) / (u_fogFar - u_fogNear), 0.0, 1.0);
     }
     col = mix(col, u_fogColor, fogFactor);
   }
+
   gl_FragColor = vec4(col, min(1.0, alpha));
 }

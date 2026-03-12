@@ -139,6 +139,7 @@ export function createSphere3DRenderer(gl, vertSource, fragSource, options = {})
     noiseHarmonicsLoc: gl.getUniformLocation(program, 'u_noiseHarmonics'),
     noiseSpeedLoc: gl.getUniformLocation(program, 'u_noiseSpeed'),
     noiseOffsetLoc: gl.getUniformLocation(program, 'u_noiseOffset'),
+    bevelSizeLoc: gl.getUniformLocation(program, 'u_bevelSize'),
     timeLoc: gl.getUniformLocation(program, 'u_time'),
     uTextureLoc: gl.getUniformLocation(program, 'u_texture'),
     uNormalMapLoc: gl.getUniformLocation(program, 'u_normalMap'),
@@ -146,6 +147,9 @@ export function createSphere3DRenderer(gl, vertSource, fragSource, options = {})
     uSpecMapLoc: gl.getUniformLocation(program, 'u_specMap'),
     uAoMapLoc: gl.getUniformLocation(program, 'u_aoMap'),
     fresnelColorLoc: gl.getUniformLocation(program, 'u_fresnelColor'),
+    fresnelPowerLoc: gl.getUniformLocation(program, 'u_fresnelPower'),
+    fresnelStrengthLoc: gl.getUniformLocation(program, 'u_fresnelStrength'),
+    isGlowPassLoc: gl.getUniformLocation(program, 'u_isGlowPass'),
     ambientColorLoc: gl.getUniformLocation(program, 'u_ambientColor'),
     starModeLoc: gl.getUniformLocation(program, 'u_starMode'),
     fogEnabledLoc: gl.getUniformLocation(program, 'u_fogEnabled'),
@@ -348,8 +352,9 @@ export function drawSphere3D(gl, renderer, viewProj, opts = {}) {
     lightIntensityLoc, ambientStrengthLoc, coreRadiusLoc, glowRadialLoc, bloomEnabledLoc, bloomRangeLoc,
     useTextureLoc, useNormalMapLoc, dispScaleLoc, texStrengthLoc, normalStrengthLoc, specStrengthLoc, aoStrengthLoc, cameraPositionLoc,
     brightnessMinLoc, brightnessMaxLoc, textureTypeLoc, zExponentLoc,
-    noiseAmplitudeLoc, noisePeriodLoc, noiseHarmonicsLoc, noiseSpeedLoc, noiseOffsetLoc, timeLoc,
-    fresnelColorLoc, ambientColorLoc, starModeLoc,
+    noiseAmplitudeLoc, noisePeriodLoc, noiseHarmonicsLoc, noiseSpeedLoc, noiseOffsetLoc, bevelSizeLoc, timeLoc,
+    fresnelColorLoc, fresnelPowerLoc, fresnelStrengthLoc, isGlowPassLoc,
+    ambientColorLoc, starModeLoc,
     fogEnabledLoc, fogTypeLoc, fogNearLoc, fogFarLoc, fogDensityLoc, fogColorLoc,
   } = renderer;
 
@@ -400,6 +405,9 @@ export function drawSphere3D(gl, renderer, viewProj, opts = {}) {
   if (ambientStrengthLoc) gl.uniform1f(ambientStrengthLoc, Number.isFinite(ambStr) ? (ambStr <= 1 ? ambStr : Math.min(1, ambStr / 100)) : 0.4);
   const fresnelRgb = parseHexToRgb(opts.fresnelColorHex || '#FFFFFF');
   if (fresnelColorLoc && fresnelRgb) gl.uniform3fv(fresnelColorLoc, fresnelRgb);
+  if (fresnelPowerLoc) gl.uniform1f(fresnelPowerLoc, Number(opts.fresnelPower ?? 3.0));
+  if (fresnelStrengthLoc) gl.uniform1f(fresnelStrengthLoc, Number(opts.fresnelStrength ?? 0.5));
+  if (isGlowPassLoc) gl.uniform1f(isGlowPassLoc, opts._isGlowPass ? 1.0 : 0.0);
   const ambientRgb = parseHexToRgb(opts.ambientColorHex || '#000000');
   if (ambientColorLoc && ambientRgb) gl.uniform3fv(ambientColorLoc, ambientRgb);
   if (coreRadiusLoc) gl.uniform1f(coreRadiusLoc, coreRadius);
@@ -427,6 +435,7 @@ export function drawSphere3D(gl, renderer, viewProj, opts = {}) {
   if (noiseHarmonicsLoc != null) gl.uniform1f(noiseHarmonicsLoc, opts.noiseHarmonics ?? 3);
   if (noiseSpeedLoc != null) gl.uniform1f(noiseSpeedLoc, Number(opts.noiseSpeed) || 0);
   if (noiseOffsetLoc != null) gl.uniform3f(noiseOffsetLoc, opts.noiseOffsetX ?? 0, opts.noiseOffsetY ?? 0, opts.noiseOffsetZ ?? 0);
+  if (bevelSizeLoc != null) gl.uniform1f(bevelSizeLoc, Number(opts.coreBevelSize ?? 0));
   if (timeLoc != null) gl.uniform1f(timeLoc, Number(opts.time) || 0);
   if (starModeLoc != null) gl.uniform1f(starModeLoc, opts.coreDisplayMode === 'star' ? 1.0 : 0.0);
   if (fogEnabledLoc != null) gl.uniform1f(fogEnabledLoc, opts.fogEnabled ? 1.0 : 0.0);

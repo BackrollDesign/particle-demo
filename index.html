@@ -702,7 +702,9 @@
       --md-outlined-text-field-focus-outline-color: var(--filter-figma-blue);
       --md-outlined-text-field-input-text-color: var(--filter-figma-grey-100);
       --md-outlined-text-field-hover-input-text-color: var(--filter-figma-grey-100);
+      --md-outlined-text-field-focus-input-text-color: var(--filter-figma-grey-100);
       --md-outlined-text-field-label-text-color: var(--filter-figma-grey-60);
+      --md-outlined-text-field-focus-label-text-color: var(--filter-figma-blue);
     }
     [data-theme="light"] [data-scene3d-filter] .filter-arrow { color: var(--filter-figma-grey-60); }
     [data-theme="light"] [data-scene3d-filter] .filter-arrow:hover { color: var(--filter-figma-blue); background: rgba(52,116,211,0.1); }
@@ -760,7 +762,9 @@
       --md-outlined-text-field-focus-outline-color: var(--filter-accent);
       --md-outlined-text-field-input-text-color: var(--filter-text);
       --md-outlined-text-field-hover-input-text-color: var(--filter-text);
+      --md-outlined-text-field-focus-input-text-color: #ffffff;
       --md-outlined-text-field-label-text-color: var(--filter-text-muted);
+      --md-outlined-text-field-focus-label-text-color: var(--filter-accent);
       --md-outlined-text-field-supporting-text-color: var(--filter-text-muted);
       --md-outlined-text-field-container-shape: 8px;
       --md-outlined-text-field-container-shape-start-start: 8px;
@@ -864,14 +868,6 @@
       --md-slider-handle-color: var(--filter-figma-slider);
       --md-slider-inactive-track-color: rgba(50,166,249,0.2);
       --md-slider-label-text-color: var(--filter-figma-grey-100);
-    }
-    [data-theme="light"] [data-scene3d-filter] md-outlined-text-field {
-      --md-outlined-text-field-outline-color: var(--filter-figma-grey-40);
-      --md-outlined-text-field-hover-outline-color: var(--filter-figma-grey-60);
-      --md-outlined-text-field-focus-outline-color: var(--filter-figma-blue);
-      --md-outlined-text-field-input-text-color: var(--filter-figma-grey-100);
-      --md-outlined-text-field-hover-input-text-color: var(--filter-figma-grey-100);
-      --md-outlined-text-field-label-text-color: var(--filter-figma-grey-60);
     }
     @media (max-width: 1024px) {
       .alcyone-main { flex-direction: column; align-items: stretch; }
@@ -1052,17 +1048,26 @@
         <summary><span class="filter-section-icon" aria-hidden="true">◫</span><h3 class="filter-title">Core</h3></summary>
         <div class="filter-block-content filter-subsections">
       <details class="filter-section filter-section-geometry" data-filter-section="core-geometry" open aria-labelledby="filter-core-geometry-head">
-        <summary><span class="filter-section-icon" aria-hidden="true">◇</span><h3 class="filter-title" id="filter-core-geometry-head">Sphere</h3></summary>
+        <summary><span class="filter-section-icon" aria-hidden="true">◇</span><h3 class="filter-title" id="filter-core-geometry-head">Geometry</h3></summary>
         <div class="filter-block-content">
           <div class="filter-row-group"><div class="filter-row-label"><label>Core enabled</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><select data-scene3d-opt="coreEnabled"><option value="0" selected>Off</option><option value="1">On</option></select></div></div></div></div>
           <div class="filter-row-group"><div class="filter-row-label"><label>Core display</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><select data-scene3d-opt="coreDisplayMode"><option value="planet" selected>Planet</option><option value="star">Star (Alcyone)</option></select></div></div></div></div>
           <div class="filter-row-group"><div class="filter-row-label"><label>Core radius</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreRadius" min="0.05" max="10" step="0.005" value="0.31" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreRadius" type="number" value="0.31" step="0.005"></md-outlined-text-field></div></div></div></div>
           <div class="filter-row-group"><div class="filter-row-label"><label>Segments (latitude)</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreSegmentsLat" min="4" max="128" step="4" value="64" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreSegmentsLat" type="number" value="64" min="4" max="128"></md-outlined-text-field></div></div></div></div>
           <div class="filter-row-group"><div class="filter-row-label"><label>Segments (longitude)</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreSegmentsLon" min="4" max="128" step="4" value="64" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreSegmentsLon" type="number" value="64" min="4" max="128"></md-outlined-text-field></div></div></div></div>
-          <div class="filter-row-group"><div class="filter-row-label"><label>Texture projection</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><select data-scene3d-opt="coreTextureType"><option value="uv">UV</option><option value="xyz_normalized">XYZ</option><option value="face">Face</option></select></div></div></div></div>
-          <div class="filter-row-group"><div class="filter-row-label"><label>Bloom</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><select data-scene3d-opt="bloomEnabled"><option value="1" selected>On</option><option value="0">Off</option></select></div></div></div></div>
-          <div class="filter-row-group"><div class="filter-row-label"><label>Core glow</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreGlowStrength" min="0" max="100" step="1" value="100" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreGlowStrength" type="number" value="100"></md-outlined-text-field></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Rotation (deg/s)</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreRotationSpeed" min="0" max="30" step="0.5" value="0" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreRotationSpeed" type="number" value="0" min="0" max="30" step="0.5"></md-outlined-text-field></div></div></div></div>
           <div class="filter-row-group"><div class="filter-row-label"><label>Blend mode</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><select data-scene3d-opt="coreBlendMode"><option value="normal" selected>Normal</option><option value="additive">Additive</option><option value="screen">Screen</option><option value="multiply">Multiply</option><option value="subtractive">Subtractive</option></select></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Texture projection</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><select data-scene3d-opt="coreTextureType"><option value="uv">UV</option><option value="xyz_normalized">XYZ</option><option value="face">Face</option></select></div></div></div></div>
+        </div>
+      </details>
+      <details class="filter-section filter-section-glow" data-filter-section="core-glow" open>
+        <summary><span class="filter-section-icon" aria-hidden="true">✦</span><h3 class="filter-title">Glow & Bloom</h3></summary>
+        <div class="filter-block-content">
+          <div class="filter-row-group"><div class="filter-row-label"><label>Core glow</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreGlowStrength" min="0" max="100" step="1" value="100" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreGlowStrength" type="number" value="100"></md-outlined-text-field></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Ambient glow</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreGlowAmbient" min="0" max="100" step="1" value="100" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreGlowAmbient" type="number" value="100"></md-outlined-text-field></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Radial glow</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreGlowRadial" min="0" max="1" step="0.02" value="1" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreGlowRadial" type="number" value="1" step="0.02"></md-outlined-text-field></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Bloom</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><select data-scene3d-opt="bloomEnabled"><option value="1" selected>On</option><option value="0">Off</option></select></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Bloom range</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="bloomRange" min="0.2" max="100" step="0.05" value="94.7" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="bloomRange" type="number" value="94.7" step="0.05"></md-outlined-text-field></div></div></div></div>
         </div>
       </details>
       <details class="filter-section filter-section-physics" data-filter-section="core-physics" open aria-labelledby="filter-core-physics-head">
@@ -1075,21 +1080,11 @@
           <div class="filter-row-group"><div class="filter-row-label"><label title="Minimum gravity distance to prevent singularities">Min. distance</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="minDistance" min="0.00001" max="0.01" step="0.0001" value="0.0001" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="minDistance" type="number" value="0.0001" step="0.0001"></md-outlined-text-field></div></div></div></div>
         </div>
       </details>
-      <details class="filter-section filter-section-transform" data-filter-section="core-transform" open>
-        <summary><span class="filter-section-icon" aria-hidden="true">↻</span><h3 class="filter-title">Transform</h3></summary>
+      <details class="filter-section filter-section-shape" data-filter-section="core-shape" open>
+        <summary><span class="filter-section-icon" aria-hidden="true">◫</span><h3 class="filter-title">Shape</h3></summary>
         <div class="filter-block-content">
-          <div class="filter-row-group"><div class="filter-row-label"><label>Core auto-rotate (deg/s)</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreRotationSpeed" min="0" max="30" step="0.5" value="0" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreRotationSpeed" type="number" value="0" min="0" max="30" step="0.5"></md-outlined-text-field></div></div></div></div>
-        </div>
-      </details>
-      <details class="filter-section filter-section-material" data-filter-section="core-material" open>
-        <summary><span class="filter-section-icon" aria-hidden="true">○</span><h3 class="filter-title">Material</h3></summary>
-        <div class="filter-block-content">
-          <div class="filter-row-group"><div class="filter-row-label"><label>Core ambient glow</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreGlowAmbient" min="0" max="100" step="1" value="100" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreGlowAmbient" type="number" value="100"></md-outlined-text-field></div></div></div></div>
-          <div class="filter-row-group"><div class="filter-row-label"><label>Radial glow</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreGlowRadial" min="0" max="1" step="0.02" value="1" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreGlowRadial" type="number" value="1" step="0.02"></md-outlined-text-field></div></div></div></div>
-          <div class="filter-row-group"><div class="filter-row-label"><label>Brightness min</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreBrightnessMin" min="-1" max="2" step="0.02" value="0" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreBrightnessMin" type="number" value="0" step="0.02" min="-1" max="2"></md-outlined-text-field></div></div></div></div>
-          <div class="filter-row-group"><div class="filter-row-label"><label>Brightness max</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreBrightnessMax" min="0" max="2" step="0.02" value="1" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreBrightnessMax" type="number" value="1" step="0.02" min="0" max="2"></md-outlined-text-field></div></div></div></div>
-          <div class="filter-row-group"><div class="filter-row-label"><label title="Controls depth-based falloff curve">Z exponent</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreZExponent" min="0.2" max="3" step="0.05" value="1" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreZExponent" type="number" value="1"></md-outlined-text-field></div></div></div></div>
-          <div class="filter-row-group"><div class="filter-row-label"><label>Bloom range</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="bloomRange" min="0.2" max="100" step="0.05" value="94.7" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="bloomRange" type="number" value="94.7" step="0.05"></md-outlined-text-field></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Z exponent</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreZExponent" min="0.2" max="3" step="0.05" value="1" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreZExponent" type="number" value="1"></md-outlined-text-field></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Bevel size</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreBevelSize" min="0" max="1" step="0.01" value="0" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreBevelSize" type="number" value="0"></md-outlined-text-field></div></div></div></div>
           <div class="filter-row-group"><div class="filter-row-label"><label>Noise period</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="noisePeriod" min="0.01" max="20" step="0.05" value="1" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="noisePeriod" type="number" value="1" step="0.05" min="0.01" max="20"></md-outlined-text-field></div></div></div></div>
           <div class="filter-row-group"><div class="filter-row-label"><label>Noise harmonics</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="noiseHarmonics" min="1" max="8" step="1" value="3" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="noiseHarmonics" type="number" value="3" min="1" max="8"></md-outlined-text-field></div></div></div></div>
           <div class="filter-row-group"><div class="filter-row-label"><label>Noise amplitude</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="noiseAmplitude" min="0" max="2" step="0.01" value="0.1" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="noiseAmplitude" type="number" value="0.1" step="0.01"></md-outlined-text-field></div></div></div></div>
@@ -1099,10 +1094,19 @@
           <div class="filter-row-group"><div class="filter-row-label"><label>Noise offset Z</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="noiseOffsetZ" min="-10" max="10" step="0.1" value="0" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="noiseOffsetZ" type="number" value="0"></md-outlined-text-field></div></div></div></div>
         </div>
       </details>
-      <details class="filter-section filter-section-fresnel" data-filter-section="core-fresnel" open>
-        <summary><span class="filter-section-icon" aria-hidden="true">○</span><h3 class="filter-title">Fresnel</h3></summary>
+      <details class="filter-section filter-section-material" data-filter-section="core-material" open>
+        <summary><span class="filter-section-icon" aria-hidden="true">○</span><h3 class="filter-title">Material</h3></summary>
         <div class="filter-block-content">
-          <div class="filter-row-group"><div class="filter-row-label"><label>Fresnel color</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><input type="color" id="fresnel-color-picker" value="#FFFFFF" title="Fresnel color" /><input type="text" class="filter-hex" data-scene3d-opt="fresnelColorHex" placeholder="#FFFFFF" maxlength="7" value="#FFFFFF" /></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Brightness min</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreBrightnessMin" min="-1" max="2" step="0.02" value="0" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreBrightnessMin" type="number" value="0" step="0.02" min="-1" max="2"></md-outlined-text-field></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Brightness max</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="coreBrightnessMax" min="0" max="2" step="0.02" value="1" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="coreBrightnessMax" type="number" value="1" step="0.02" min="0" max="2"></md-outlined-text-field></div></div></div></div>
+        </div>
+      </details>
+      <details class="filter-section filter-section-fresnel" data-filter-section="core-fresnel" open>
+        <summary><span class="filter-section-icon" aria-hidden="true">○</span><h3 class="filter-title">Rim light</h3></summary>
+        <div class="filter-block-content">
+          <div class="filter-row-group"><div class="filter-row-label"><label>Rim light color</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-input-row"><input type="color" id="fresnel-color-picker" value="#FFFFFF" title="Rim light color" /><input type="text" class="filter-hex" data-scene3d-opt="fresnelColorHex" placeholder="#FFFFFF" maxlength="7" value="#FFFFFF" /></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Rim light strength</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="fresnelStrength" min="0" max="2" step="0.01" value="0.5" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="fresnelStrength" type="number" value="0.5"></md-outlined-text-field></div></div></div></div>
+          <div class="filter-row-group"><div class="filter-row-label"><label>Rim light sharpness</label></div><div class="filter-row"><div class="filter-row-controls"><div class="filter-slider-row"><md-slider data-scene3d-opt="fresnelPower" min="0.5" max="8" step="0.1" value="3" labeled></md-slider></div><div class="filter-input-row"><md-outlined-text-field data-scene3d-opt="fresnelPower" type="number" value="3"></md-outlined-text-field></div></div></div></div>
         </div>
       </details>
       <details class="filter-section filter-section-envmap" data-filter-section="core-envmap" open>

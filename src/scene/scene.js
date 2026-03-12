@@ -172,47 +172,71 @@ export function initScene(gl, canvas, shaders, options = {}) {
       }
       if (!opts.coreTextureUrl) lastLoadedDiffuseUrl = '';
       if (!opts.coreNormalMapUrl) lastLoadedNormalUrl = '';
-      drawSphere3D(gl, sphere3DRenderer, viewProj, {
-      time,
-      coreDisplayMode: opts.coreDisplayMode,
-      coreRadius: opts.coreRadius,
-      coreGlowStrength: opts.coreGlowStrength,
-      coreGlowAmbient: opts.coreGlowAmbient,
-      coreGlowRadial: opts.coreGlowRadial,
-      coreRotationSpeed: opts.coreRotationSpeed,
-      bloomEnabled: opts.bloomEnabled,
-      bloomRange: opts.bloomRange,
-      coreTextureUrl: opts.coreTextureUrl,
-      coreNormalMapUrl: opts.coreNormalMapUrl,
-      coreBrightnessMin: opts.coreBrightnessMin,
-      coreBrightnessMax: opts.coreBrightnessMax,
-      coreTextureType: opts.coreTextureType,
-      coreZExponent: opts.coreZExponent,
-      noiseType: opts.noiseType,
-      noisePeriod: opts.noisePeriod,
-      noiseHarmonics: opts.noiseHarmonics,
-      noiseAmplitude: opts.noiseAmplitude,
-      noiseSpeed: opts.noiseSpeed,
-      noiseOffsetX: opts.noiseOffsetX,
-      noiseOffsetY: opts.noiseOffsetY,
-      noiseOffsetZ: opts.noiseOffsetZ,
-      cameraPosition: [camX, camY, camZ],
-      lightDirX: opts.lightDirX,
-      lightDirY: opts.lightDirY,
-      lightDirZ: opts.lightDirZ,
-      lightHeight: opts.lightHeight,
-      lightDirection: opts.lightDirection,
-      lightIntensity: opts.lightIntensity,
-      ambientStrength: opts.ambientStrength,
-      fresnelColorHex: opts.fresnelColorHex,
-      ambientColorHex: opts.ambientColorHex,
-      fogEnabled: opts.fogEnabled,
-      fogType: opts.fogType,
-      fogNear: opts.fogNear,
-      fogFar: opts.fogFar,
-      fogDensity: opts.fogDensity,
-      fogColorHex: opts.fogColorHex,
-    });
+      const coreDrawOpts = {
+        time,
+        coreDisplayMode: opts.coreDisplayMode,
+        coreRadius: opts.coreRadius,
+        coreGlowStrength: opts.coreGlowStrength,
+        coreGlowAmbient: opts.coreGlowAmbient,
+        coreGlowRadial: opts.coreGlowRadial,
+        coreRotationSpeed: opts.coreRotationSpeed,
+        bloomEnabled: opts.bloomEnabled,
+        bloomRange: opts.bloomRange,
+        coreTextureUrl: opts.coreTextureUrl,
+        coreNormalMapUrl: opts.coreNormalMapUrl,
+        coreTextureStrength: opts.coreTextureStrength,
+        coreNormalStrength: opts.coreNormalStrength,
+        coreDispStrength: opts.coreDispStrength,
+        coreSpecStrength: opts.coreSpecStrength,
+        coreOccStrength: opts.coreOccStrength,
+        coreBrightnessMin: opts.coreBrightnessMin,
+        coreBrightnessMax: opts.coreBrightnessMax,
+        coreTextureType: opts.coreTextureType,
+        coreZExponent: opts.coreZExponent,
+        coreBevelSize: opts.coreBevelSize,
+        noiseType: opts.noiseType,
+        noisePeriod: opts.noisePeriod,
+        noiseHarmonics: opts.noiseHarmonics,
+        noiseAmplitude: opts.noiseAmplitude,
+        noiseSpeed: opts.noiseSpeed,
+        noiseOffsetX: opts.noiseOffsetX,
+        noiseOffsetY: opts.noiseOffsetY,
+        noiseOffsetZ: opts.noiseOffsetZ,
+        cameraPosition: [camX, camY, camZ],
+        lightDirX: opts.lightDirX,
+        lightDirY: opts.lightDirY,
+        lightDirZ: opts.lightDirZ,
+        lightHeight: opts.lightHeight,
+        lightDirection: opts.lightDirection,
+        lightIntensity: opts.lightIntensity,
+        ambientStrength: opts.ambientStrength,
+        fresnelColorHex: opts.fresnelColorHex,
+        fresnelPower: opts.fresnelPower,
+        fresnelStrength: opts.fresnelStrength,
+        ambientColorHex: opts.ambientColorHex,
+        fogEnabled: opts.fogEnabled,
+        fogType: opts.fogType,
+        fogNear: opts.fogNear,
+        fogFar: opts.fogFar,
+        fogDensity: opts.fogDensity,
+        fogColorHex: opts.fogColorHex,
+      };
+
+      if (opts.bloomEnabled && opts.bloomRange > 0) {
+        gl.depthMask(false);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        const glowScale = 1.0 + (opts.bloomRange / 100) * 0.5;
+        drawSphere3D(gl, sphere3DRenderer, viewProj, {
+          ...coreDrawOpts,
+          coreRadius: opts.coreRadius * glowScale,
+          _isGlowPass: true,
+        });
+        gl.depthMask((opts.coreDepthWrite ?? 1) !== 0);
+        if (blendMode === 'additive') gl.blendFunc(gl.ONE, gl.ONE);
+        else if (blendMode === 'screen') gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR);
+        else gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      }
+      drawSphere3D(gl, sphere3DRenderer, viewProj, coreDrawOpts);
     }
 
     updateParticles3D(particleStateRef.current, opts, smoothDt, time);

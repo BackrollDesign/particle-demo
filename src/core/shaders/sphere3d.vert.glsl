@@ -12,13 +12,12 @@ uniform float u_noiseHarmonics;
 uniform float u_noiseSpeed;
 uniform vec3 u_noiseOffset;
 uniform float u_time;
+uniform float u_bevelSize;
 varying vec3 v_normal;
 varying vec3 v_tangent;
 varying vec3 v_position;
 varying vec2 v_uv;
 
-// Pseudo-noise from position for vertex displacement.
-// Loop bound must be constant in WebGL 1.0; u_noiseHarmonics is applied via weight inside.
 const float kMaxNoiseHarmonics = 8.0;
 float pseudoNoise(vec3 p) {
   float n = sin(p.x * u_noisePeriod) * cos(p.y * u_noisePeriod * 1.3) + sin(p.z * u_noisePeriod * 0.7);
@@ -31,18 +30,43 @@ float pseudoNoise(vec3 p) {
 
 void main() {
   vec3 pos = a_position;
+  vec3 nrm = a_normal;
+  bool deformed = false;
+
   if (u_zExponent > 0.01 && abs(u_zExponent - 1.0) > 0.01) {
     float z = pos.z;
     pos.z = sign(z) * pow(abs(z), u_zExponent);
+    deformed = true;
   }
+
+  if (u_bevelSize > 0.001) {
+    float r = length(pos);
+    if (r > 0.001) {
+      vec3 dir = pos / r;
+      float maxComp = max(abs(dir.x), max(abs(dir.y), abs(dir.z)));
+      float bevel = mix(1.0, maxComp, u_bevelSize * 0.3);
+      pos *= bevel;
+      deformed = true;
+    }
+  }
+
   if (u_noiseAmplitude > 0.001) {
     vec3 samplePos = (pos + u_noiseOffset) * 4.0 + vec3(u_time * u_noiseSpeed, 0.0, 0.0);
     float n = pseudoNoise(samplePos);
     pos += a_normal * u_noiseAmplitude * n * 0.1;
+    deformed = true;
   }
+
+  if (deformed) {
+    float r = length(pos);
+    if (r > 0.001) {
+      nrm = normalize(pos);
+    }
+  }
+
   vec4 world = u_model * vec4(pos, 1.0);
   v_position = world.xyz;
-  v_normal = normalize((u_model * vec4(a_normal, 0.0)).xyz);
+  v_normal = normalize((u_model * vec4(nrm, 0.0)).xyz);
   v_tangent = normalize((u_model * vec4(a_tangent, 0.0)).xyz);
   v_uv = a_uv;
   gl_Position = u_viewProj * world;
