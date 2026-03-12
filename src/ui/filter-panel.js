@@ -416,8 +416,7 @@ export function createFilterPanel(container, onChange, options = {}) {
   if (versionEl) versionEl.textContent = 'v' + FILTER_SCHEMA_VERSION;
 
   const tabClickHandler = () => {
-    setTimeout(syncFromOptions, 80);
-    setTimeout(syncFromOptions, 220);
+    setTimeout(syncFromOptions, 120);
   };
   const tabRefs = [];
   container.querySelectorAll('.filter-tab').forEach((tab) => {

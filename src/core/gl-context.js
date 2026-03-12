@@ -14,6 +14,9 @@ export function getGLContext(canvas, attrs = {}) {
     canvas.getContext('webgl2', options) ||
     canvas.getContext('webgl', options) ||
     null;
+  if (gl) {
+    gl.getExtension('OES_standard_derivatives');
+  }
   return gl;
 }
 

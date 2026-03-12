@@ -52,6 +52,25 @@ export function getGravityAcceleration3D(particle, core, G, M, minR = DEFAULT_MI
   return { x: (dx / r) * aMag, y: (dy / r) * aMag, z: (dz / r) * aMag };
 }
 
+const _accelOut = [0, 0, 0];
+/**
+ * Allocation-free 3D gravity acceleration using primitives.
+ * Writes result into a shared module-level array and returns it.
+ */
+export function gravityAccel3D(px, py, pz, cx, cy, cz, G, M, minR = DEFAULT_MIN_R) {
+  const dx = cx - px;
+  const dy = cy - py;
+  const dz = cz - pz;
+  let r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (r < minR) r = minR;
+  const aMag = (G * M) / (r * r);
+  const inv = aMag / r;
+  _accelOut[0] = dx * inv;
+  _accelOut[1] = dy * inv;
+  _accelOut[2] = dz * inv;
+  return _accelOut;
+}
+
 /**
  * Euler integration: v += a*dt, p += v*dt.
  * Exported for tests only.

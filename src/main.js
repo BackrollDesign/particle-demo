@@ -4,11 +4,12 @@
 
 import { getGLContext } from './core/gl-context.js';
 import { hidePreloader } from './ui/preloader.js';
-import './ui/material-filter-init.js';
+import { ensureMaterialLoaded } from './ui/material-filter-init.js';
 import { createFilterPanel } from './ui/filter-panel.js';
 import { applyTheme, getTheme } from './design/theme-kit.js';
 import { LIGHT_THEME_COLORS, DARK_THEME_COLORS } from './config/theme-colors.js';
 import { initScene } from './scene/scene.js';
+import { upgradeSelects } from './ui/custom-select.js';
 import particles3dVert from './core/shaders/particles3d.vert.glsl?raw';
 import particles3dFrag from './core/shaders/particles3d.frag.glsl?raw';
 import sphere3dVert from './core/shaders/sphere3d.vert.glsl?raw';
@@ -49,11 +50,13 @@ function run() {
   const scene = initScene(gl, canvas, shaders, initialThemeColors);
 
   const filterEl = document.querySelector('[data-scene3d-filter]');
+  ensureMaterialLoaded();
   const filterPanel = createFilterPanel(filterEl, (opt) => scene.setOptions(opt), { getOptions: () => scene.getOptions() });
   if (filterEl) {
     initFilterPanelDragAndCollapse(filterEl, filterPanel.syncFromOptions);
     initFilterPanelTabs(filterEl);
     initFilterPanelSections(filterEl);
+    upgradeSelects(filterEl);
   }
   const themeSwitcher = document.getElementById('theme-switcher');
   if (themeSwitcher) {

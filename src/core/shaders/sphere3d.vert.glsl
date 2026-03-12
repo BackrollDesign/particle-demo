@@ -43,8 +43,9 @@ void main() {
     float r = length(pos);
     if (r > 0.001) {
       vec3 dir = pos / r;
-      float maxComp = max(abs(dir.x), max(abs(dir.y), abs(dir.z)));
-      float bevel = mix(1.0, maxComp, u_bevelSize * 0.3);
+      vec3 ad = abs(dir);
+      float maxComp = max(ad.x, max(ad.y, ad.z));
+      float bevel = pow(maxComp, u_bevelSize);
       pos *= bevel;
       deformed = true;
     }

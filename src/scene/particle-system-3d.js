@@ -3,11 +3,10 @@
  * Uses scene3d-params (magnitude 10/1/0.1/0.01) for G, M, orbit, wind, wave.
  */
 
-import { getGravityAcceleration3D } from '../physics/gravity.js';
+import { gravityAccel3D } from '../physics/gravity.js';
 import { createProgram } from '../core/compile-shader.js';
 import { getEffectiveMagnitudeParam } from '../config/scene3d-params.js';
 
-const CORE3D = { x: 0, y: 0, z: 0 };
 const SAFE_MAX_SPEED = 1e3;
 const PARTICLE_INNER_RADIUS = 0.2;
 
@@ -17,23 +16,26 @@ const PARTICLE_INNER_RADIUS = 0.2;
  * @param {number} outerR
  * @param {number} halfThickness max |z|
  */
+const _diskOut = [0, 0, 0];
 function randomInDisk(innerR, outerR, halfThickness) {
   const r = innerR + (outerR - innerR) * Math.sqrt(Math.random());
   const a = Math.random() * Math.PI * 2;
-  const z = (Math.random() * 2 - 1) * halfThickness;
-  return {
-    x: r * Math.cos(a),
-    y: r * Math.sin(a),
-    z,
-  };
+  _diskOut[0] = r * Math.cos(a);
+  _diskOut[1] = r * Math.sin(a);
+  _diskOut[2] = (Math.random() * 2 - 1) * halfThickness;
+  return _diskOut;
 }
 
 /**
  * Tangent in XY plane (perpendicular to radius in disk), so particles orbit.
  */
+const _tangOut = [0, 0, 0];
 function tangentInDisk(x, y) {
   const r = Math.hypot(x, y) || 0.01;
-  return { x: -y / r, y: x / r, z: 0 };
+  _tangOut[0] = -y / r;
+  _tangOut[1] = x / r;
+  _tangOut[2] = 0;
+  return _tangOut;
 }
 
 /**
@@ -49,13 +51,14 @@ function spawnParticle(state, i, params) {
   const orbitStr = params.orbitStrength ?? 0.08;
   const sizeMul = getEffectiveMagnitudeParam(params, 'particleSize');
   const p = randomInDisk(innerR, diskR, diskT);
-  state.positions[i * 3] = p.x;
-  state.positions[i * 3 + 1] = p.y;
-  state.positions[i * 3 + 2] = p.z;
-  const tang = tangentInDisk(p.x, p.y);
+  const spx = p[0], spy = p[1], spz = p[2];
+  state.positions[i * 3] = spx;
+  state.positions[i * 3 + 1] = spy;
+  state.positions[i * 3 + 2] = spz;
+  const tang = tangentInDisk(spx, spy);
   const orbit = (0.3 + Math.random() * 0.7) * orbitStr;
-  state.velocities[i * 3] = tang.x * orbit + (Math.random() - 0.5) * 0.001;
-  state.velocities[i * 3 + 1] = tang.y * orbit + (Math.random() - 0.5) * 0.001;
+  state.velocities[i * 3] = tang[0] * orbit + (Math.random() - 0.5) * 0.001;
+  state.velocities[i * 3 + 1] = tang[1] * orbit + (Math.random() - 0.5) * 0.001;
   state.velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
   state.sizes[i] = (0.5 + Math.random() * 0.8) * sizeMul;
 }
@@ -125,19 +128,13 @@ export function updateParticles3D(state, opts, dt, time = 0) {
     const px = state.positions[i * 3];
     const py = state.positions[i * 3 + 1];
     const pz = state.positions[i * 3 + 2];
-    const acc = getGravityAcceleration3D(
-      { x: px, y: py, z: pz },
-      CORE3D,
-      G,
-      M,
-      minR
-    );
+    const acc = gravityAccel3D(px, py, pz, 0, 0, 0, G, M, minR);
     const tang = tangentInDisk(px, py);
-    let vx = state.velocities[i * 3] + acc.x * dt;
-    let vy = state.velocities[i * 3 + 1] + acc.y * dt;
-    let vz = state.velocities[i * 3 + 2] + acc.z * dt;
-    vx += tang.x * orbitStr * dt;
-    vy += tang.y * orbitStr * dt;
+    let vx = state.velocities[i * 3] + acc[0] * dt;
+    let vy = state.velocities[i * 3 + 1] + acc[1] * dt;
+    let vz = state.velocities[i * 3 + 2] + acc[2] * dt;
+    vx += tang[0] * orbitStr * dt;
+    vy += tang[1] * orbitStr * dt;
     vx += windX * dt;
     vy += windY * dt;
     vz += windZ * dt;
@@ -188,9 +185,9 @@ export function updateParticles3D(state, opts, dt, time = 0) {
       const s = diskR / r;
       nx *= s;
       ny *= s;
-      const tn = vx * tang.x + vy * tang.y;
-      state.velocities[i * 3] = tang.x * tn * 0.4;
-      state.velocities[i * 3 + 1] = tang.y * tn * 0.4;
+      const tn = vx * tang[0] + vy * tang[1];
+      state.velocities[i * 3] = tang[0] * tn * 0.4;
+      state.velocities[i * 3 + 1] = tang[1] * tn * 0.4;
       state.velocities[i * 3 + 2] = vz * 0.3;
     } else {
       state.velocities[i * 3] = vx;
@@ -211,21 +208,25 @@ export const MAX_R3D = 3.5;
 // --- Star particle system (dense spherical cluster; same physics as disk) ---
 
 /** Uniform random point inside a sphere of given radius. */
+const _sphereOut = [0, 0, 0];
 function randomInSphere(radius) {
   const r = radius * Math.cbrt(Math.random());
   const theta = Math.acos(2 * Math.random() - 1);
   const phi = Math.PI * 2 * Math.random();
-  return {
-    x: r * Math.sin(theta) * Math.cos(phi),
-    y: r * Math.sin(theta) * Math.sin(phi),
-    z: r * Math.cos(theta),
-  };
+  _sphereOut[0] = r * Math.sin(theta) * Math.cos(phi);
+  _sphereOut[1] = r * Math.sin(theta) * Math.sin(phi);
+  _sphereOut[2] = r * Math.cos(theta);
+  return _sphereOut;
 }
 
 /** Tangent to sphere at point (perpendicular to radius; for orbital velocity). */
+const _tangSphereOut = [0, 0, 0];
 function tangentToSphere(x, y, z) {
   const len = Math.sqrt(x * x + z * z) || 0.01;
-  return { x: z / len, y: 0, z: -x / len };
+  _tangSphereOut[0] = z / len;
+  _tangSphereOut[1] = 0;
+  _tangSphereOut[2] = -x / len;
+  return _tangSphereOut;
 }
 
 function spawnStarParticle(state, i, params) {
@@ -233,14 +234,15 @@ function spawnStarParticle(state, i, params) {
   const orbitStr = params.orbitStrength ?? 0.08;
   const sizeMul = params.starParticleSize ?? 0.5;
   const p = randomInSphere(starR);
-  state.positions[i * 3] = p.x;
-  state.positions[i * 3 + 1] = p.y;
-  state.positions[i * 3 + 2] = p.z;
-  const tang = tangentToSphere(p.x, p.y, p.z);
+  const spx = p[0], spy = p[1], spz = p[2];
+  state.positions[i * 3] = spx;
+  state.positions[i * 3 + 1] = spy;
+  state.positions[i * 3 + 2] = spz;
+  const tang = tangentToSphere(spx, spy, spz);
   const orbit = (0.2 + Math.random() * 0.6) * orbitStr;
-  state.velocities[i * 3] = tang.x * orbit + (Math.random() - 0.5) * 0.002;
-  state.velocities[i * 3 + 1] = tang.y * orbit + (Math.random() - 0.5) * 0.002;
-  state.velocities[i * 3 + 2] = tang.z * orbit + (Math.random() - 0.5) * 0.002;
+  state.velocities[i * 3] = tang[0] * orbit + (Math.random() - 0.5) * 0.002;
+  state.velocities[i * 3 + 1] = tang[1] * orbit + (Math.random() - 0.5) * 0.002;
+  state.velocities[i * 3 + 2] = tang[2] * orbit + (Math.random() - 0.5) * 0.002;
   state.sizes[i] = (0.4 + Math.random() * 0.8) * sizeMul;
 }
 
@@ -307,15 +309,15 @@ export function updateStarParticles3D(state, opts, dt, time = 0) {
     const px = state.positions[i * 3];
     const py = state.positions[i * 3 + 1];
     const pz = state.positions[i * 3 + 2];
-    const acc = getGravityAcceleration3D({ x: px, y: py, z: pz }, CORE3D, G, M, minR);
+    const acc = gravityAccel3D(px, py, pz, 0, 0, 0, G, M, minR);
     const r = Math.sqrt(px * px + py * py + pz * pz) || 0.01;
     const horiz = Math.sqrt(px * px + pz * pz) || 0.01;
     const tangX = pz / horiz;
     const tangY = 0;
     const tangZ = -px / horiz;
-    let vx = state.velocities[i * 3] + acc.x * dt;
-    let vy = state.velocities[i * 3 + 1] + acc.y * dt;
-    let vz = state.velocities[i * 3 + 2] + acc.z * dt;
+    let vx = state.velocities[i * 3] + acc[0] * dt;
+    let vy = state.velocities[i * 3 + 1] + acc[1] * dt;
+    let vz = state.velocities[i * 3 + 2] + acc[2] * dt;
     vx += tangX * orbitStr * dt;
     vy += tangY * orbitStr * dt;
     vz += tangZ * orbitStr * dt;

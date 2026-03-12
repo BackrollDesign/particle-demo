@@ -1,7 +1,12 @@
 /**
- * Material Web components for filter panel: slider, outlined text field.
- * Import once so <md-slider> and <md-outlined-text-field> are defined.
- * Theme is applied via CSS on [data-scene3d-filter] in index.html.
+ * Material Web components: lazy-loaded when filter panel first becomes visible.
+ * Registers <md-slider> and <md-outlined-text-field> custom elements.
  */
-import '@material/web/slider/slider.js';
-import '@material/web/textfield/outlined-text-field.js';
+let _loaded = false;
+
+export function ensureMaterialLoaded() {
+  if (_loaded) return;
+  _loaded = true;
+  import('@material/web/slider/slider.js');
+  import('@material/web/textfield/outlined-text-field.js');
+}

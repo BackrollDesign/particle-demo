@@ -8,6 +8,22 @@ import { parseHexToRgb } from '../config/scene3d-params.js';
 
 const DEFAULT_RADIUS = 0.25;
 
+let _cFresnelHex = '', _cFresnelRgb = null;
+let _cAmbientHex = '', _cAmbientRgb = null;
+let _cFogHex = '', _cFogRgb = null;
+function cachedHex(hex, kind) {
+  if (kind === 0) {
+    if (hex !== _cFresnelHex) { _cFresnelHex = hex; _cFresnelRgb = parseHexToRgb(hex); }
+    return _cFresnelRgb;
+  }
+  if (kind === 1) {
+    if (hex !== _cAmbientHex) { _cAmbientHex = hex; _cAmbientRgb = parseHexToRgb(hex); }
+    return _cAmbientRgb;
+  }
+  if (hex !== _cFogHex) { _cFogHex = hex; _cFogRgb = parseHexToRgb(hex); }
+  return _cFogRgb;
+}
+
 /**
  * Build sphere mesh with single-vertex poles to avoid holes at north/south poles.
  * Layout: vertex 0 = north pole, then (latSeg-1) rings of (lonSeg+1) vertices, then vertex last = south pole.
@@ -16,7 +32,9 @@ const DEFAULT_RADIUS = 0.25;
  * @param {number} radius
  * @returns {{ positions: number[], normals: number[], tangents: number[], indices: number[], uvs: number[] }}
  */
-function buildSphereMesh(latSeg, lonSeg, radius = DEFAULT_RADIUS) {
+function buildSphereMesh(latSeg, lonSeg, radius = DEFAULT_RADIUS, flat = false) {
+  if (flat) return buildFlatSphereMesh(latSeg, lonSeg, radius);
+
   const positions = [];
   const normals = [];
   const tangents = [];
@@ -40,7 +58,7 @@ function buildSphereMesh(latSeg, lonSeg, radius = DEFAULT_RADIUS) {
       normals.push(x, y, z);
       const sinT = Math.max(1e-5, r);
       tangents.push(-z / sinT, 0, x / sinT);
-      uvs.push(lon / lonSeg, 1 - v);
+      uvs.push(lon / lonSeg, v);
     }
   }
   const southPole = 1 + (latSeg - 1) * lonCount;
@@ -65,6 +83,82 @@ function buildSphereMesh(latSeg, lonSeg, radius = DEFAULT_RADIUS) {
   for (let lon = 0; lon < lonSeg; lon++) {
     indices.push(southPole, lastRingStart + lon + 1, lastRingStart + lon);
   }
+  return { positions, normals, tangents, indices, uvs };
+}
+
+function sphereVertex(lat, lon, latSeg, lonSeg, radius) {
+  const theta = (lat / latSeg) * Math.PI;
+  const phi = (lon / lonSeg) * Math.PI * 2;
+  const y = Math.cos(theta);
+  const r = Math.sin(theta);
+  const x = r * Math.cos(phi);
+  const z = r * Math.sin(phi);
+  const sinT = Math.max(1e-5, r);
+  return {
+    px: radius * x, py: radius * y, pz: radius * z,
+    nx: x, ny: y, nz: z,
+    tx: -z / sinT, ty: 0, tz: x / sinT,
+    u: lon / lonSeg, v: lat / latSeg,
+  };
+}
+
+function faceNormal(ax, ay, az, bx, by, bz, cx, cy, cz) {
+  const e1x = bx - ax, e1y = by - ay, e1z = bz - az;
+  const e2x = cx - ax, e2y = cy - ay, e2z = cz - az;
+  let nx = e1y * e2z - e1z * e2y;
+  let ny = e1z * e2x - e1x * e2z;
+  let nz = e1x * e2y - e1y * e2x;
+  const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+  return { nx: nx / len, ny: ny / len, nz: nz / len };
+}
+
+function buildFlatSphereMesh(latSeg, lonSeg, radius) {
+  const positions = [];
+  const normals = [];
+  const tangents = [];
+  const uvs = [];
+  const indices = [];
+  let idx = 0;
+
+  function pushTri(a, b, c) {
+    const fn = faceNormal(a.px, a.py, a.pz, b.px, b.py, b.pz, c.px, c.py, c.pz);
+    for (const vt of [a, b, c]) {
+      positions.push(vt.px, vt.py, vt.pz);
+      normals.push(fn.nx, fn.ny, fn.nz);
+      tangents.push(vt.tx, vt.ty, vt.tz);
+      uvs.push(vt.u, vt.v);
+      indices.push(idx++);
+    }
+  }
+
+  const pole0 = { px: 0, py: radius, pz: 0, nx: 0, ny: 1, nz: 0, tx: 1, ty: 0, tz: 0, u: 0.5, v: 0 };
+  const pole1 = { px: 0, py: -radius, pz: 0, nx: 0, ny: -1, nz: 0, tx: 1, ty: 0, tz: 0, u: 0.5, v: 1 };
+
+  for (let lon = 0; lon < lonSeg; lon++) {
+    const a = pole0;
+    const b = sphereVertex(1, lon, latSeg, lonSeg, radius);
+    const c = sphereVertex(1, lon + 1, latSeg, lonSeg, radius);
+    pushTri(a, b, c);
+  }
+
+  for (let lat = 1; lat < latSeg - 1; lat++) {
+    for (let lon = 0; lon < lonSeg; lon++) {
+      const a = sphereVertex(lat, lon, latSeg, lonSeg, radius);
+      const b = sphereVertex(lat + 1, lon, latSeg, lonSeg, radius);
+      const c = sphereVertex(lat, lon + 1, latSeg, lonSeg, radius);
+      const d = sphereVertex(lat + 1, lon + 1, latSeg, lonSeg, radius);
+      pushTri(a, b, c);
+      pushTri(c, b, d);
+    }
+  }
+
+  for (let lon = 0; lon < lonSeg; lon++) {
+    const a = pole1;
+    const b = sphereVertex(latSeg - 1, lon + 1, latSeg, lonSeg, radius);
+    const c = sphereVertex(latSeg - 1, lon, latSeg, lonSeg, radius);
+    pushTri(a, b, c);
+  }
+
   return { positions, normals, tangents, indices, uvs };
 }
 
@@ -168,10 +262,10 @@ export function createSphere3DRenderer(gl, vertSource, fragSource, options = {})
  * @param {number} latSeg
  * @param {number} lonSeg
  */
-export function updateSphere3DGeometry(renderer, gl, latSeg, lonSeg) {
+export function updateSphere3DGeometry(renderer, gl, latSeg, lonSeg, flat = false) {
   const lat = Math.max(4, Math.min(128, Math.floor(latSeg)));
   const lon = Math.max(4, Math.min(128, Math.floor(lonSeg)));
-  const { positions, normals, tangents, indices, uvs } = buildSphereMesh(lat, lon);
+  const { positions, normals, tangents, indices, uvs } = buildSphereMesh(lat, lon, DEFAULT_RADIUS, flat);
   gl.bindBuffer(gl.ARRAY_BUFFER, renderer.vbo);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER, renderer.nbo);
@@ -185,10 +279,18 @@ export function updateSphere3DGeometry(renderer, gl, latSeg, lonSeg) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
   }
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, renderer.ibo);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+  const use32 = indices.length > 65535;
+  if (use32) {
+    gl.getExtension('OES_element_index_uint');
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(indices), gl.STATIC_DRAW);
+  } else {
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+  }
   renderer.indexCount = indices.length;
+  renderer.indexType = use32 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
   renderer.latSegments = lat;
   renderer.lonSegments = lon;
+  renderer.flatShading = flat;
 }
 
 /** Derive texture set base path from diffuse URL (e.g. .../Ice_002_COLOR.jpg -> .../Ice_002). */
@@ -305,7 +407,7 @@ export function loadSphereTexture(gl, renderer, diffuseUrl, opts = {}) {
   const urls = {
     diffuse: diffuseUrl,
     normal: normalUrl || (isBlob ? '' : base + '_NORM.jpg'),
-    disp: isBlob ? dispUrl : (base + '_DISP.png'),
+    disp: isBlob ? dispUrl : (base + '_DISP.jpg'),
     spec: isBlob ? specUrl : (base + '_SPEC.jpg'),
     ao: isBlob ? occUrl : (base + '_OCC.jpg'),
   };
@@ -377,19 +479,13 @@ export function drawSphere3D(gl, renderer, viewProj, opts = {}) {
   let lz = opts.lightDirZ ?? 0.8;
   const lightHeight = opts.lightHeight;
   const lightDirection = opts.lightDirection;
-  const hasExplicitXyz = opts.lightDirX != null && opts.lightDirY != null && opts.lightDirZ != null
-    && Number.isFinite(Number(opts.lightDirX)) && Number.isFinite(Number(opts.lightDirY)) && Number.isFinite(Number(opts.lightDirZ));
-  if (!hasExplicitXyz && lightHeight != null && lightDirection != null && Number.isFinite(Number(lightHeight)) && Number.isFinite(Number(lightDirection))) {
+  if (lightHeight != null && lightDirection != null && Number.isFinite(Number(lightHeight)) && Number.isFinite(Number(lightDirection))) {
     const el = (Number(lightHeight) % 360) * (Math.PI / 180);
     const az = (Number(lightDirection) % 360) * (Math.PI / 180);
     const ce = Math.cos(el);
     lx = ce * Math.cos(az);
     ly = Math.sin(el);
     lz = ce * Math.sin(az);
-  } else if (hasExplicitXyz) {
-    lx = Number(opts.lightDirX);
-    ly = Number(opts.lightDirY);
-    lz = Number(opts.lightDirZ);
   }
   const len = Math.sqrt(lx * lx + ly * ly + lz * lz) || 1;
   lx /= len; ly /= len; lz /= len;
@@ -403,12 +499,12 @@ export function drawSphere3D(gl, renderer, viewProj, opts = {}) {
   if (glowAmbientLoc) gl.uniform1f(glowAmbientLoc, Number.isFinite(glowAmb) ? Math.max(-1, Math.min(1, glowAmb / 100)) : 0.8);
   if (lightIntensityLoc) gl.uniform1f(lightIntensityLoc, Number.isFinite(lightInt) ? (lightInt <= 1 ? lightInt : Math.min(1, lightInt / 100)) : 0);
   if (ambientStrengthLoc) gl.uniform1f(ambientStrengthLoc, Number.isFinite(ambStr) ? (ambStr <= 1 ? ambStr : Math.min(1, ambStr / 100)) : 0.4);
-  const fresnelRgb = parseHexToRgb(opts.fresnelColorHex || '#FFFFFF');
+  const fresnelRgb = cachedHex(opts.fresnelColorHex || '#FFFFFF', 0);
   if (fresnelColorLoc && fresnelRgb) gl.uniform3fv(fresnelColorLoc, fresnelRgb);
   if (fresnelPowerLoc) gl.uniform1f(fresnelPowerLoc, Number(opts.fresnelPower ?? 3.0));
   if (fresnelStrengthLoc) gl.uniform1f(fresnelStrengthLoc, Number(opts.fresnelStrength ?? 0.5));
   if (isGlowPassLoc) gl.uniform1f(isGlowPassLoc, opts._isGlowPass ? 1.0 : 0.0);
-  const ambientRgb = parseHexToRgb(opts.ambientColorHex || '#000000');
+  const ambientRgb = cachedHex(opts.ambientColorHex || '#000000', 1);
   if (ambientColorLoc && ambientRgb) gl.uniform3fv(ambientColorLoc, ambientRgb);
   if (coreRadiusLoc) gl.uniform1f(coreRadiusLoc, coreRadius);
   if (glowRadialLoc) gl.uniform1f(glowRadialLoc, Math.max(0, Math.min(1, Number(opts.coreGlowRadial ?? 1))));
@@ -443,33 +539,38 @@ export function drawSphere3D(gl, renderer, viewProj, opts = {}) {
   if (fogNearLoc != null) gl.uniform1f(fogNearLoc, opts.fogNear ?? 5);
   if (fogFarLoc != null) gl.uniform1f(fogFarLoc, opts.fogFar ?? 50);
   if (fogDensityLoc != null) gl.uniform1f(fogDensityLoc, opts.fogDensity != null && Number.isFinite(Number(opts.fogDensity)) ? Number(opts.fogDensity) : 0.05);
-  const fogRgb = parseHexToRgb(opts.fogColorHex || '#0e1012');
+  const fogRgb = cachedHex(opts.fogColorHex || '#0e1012', 2);
   if (fogColorLoc != null && fogRgb) gl.uniform3fv(fogColorLoc, fogRgb);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
 
   if (useTexture && tex) {
-    const uTex = renderer.uTextureLoc;
-    const uNorm = renderer.uNormalMapLoc;
-    const uDisp = renderer.uDispMapLoc;
-    const uSpec = renderer.uSpecMapLoc;
-    const uAo = renderer.uAoMapLoc;
-    if (uTex != null) gl.uniform1i(uTex, 0);
-    if (uNorm != null) gl.uniform1i(uNorm, 1);
-    if (uDisp != null) gl.uniform1i(uDisp, 2);
-    if (uSpec != null) gl.uniform1i(uSpec, 3);
-    if (uAo != null) gl.uniform1i(uAo, 4);
+    if (!renderer._texSlotsSet) {
+      renderer._texSlotsSet = true;
+      const uTex = renderer.uTextureLoc;
+      const uNorm = renderer.uNormalMapLoc;
+      const uDisp = renderer.uDispMapLoc;
+      const uSpec = renderer.uSpecMapLoc;
+      const uAo = renderer.uAoMapLoc;
+      if (uTex != null) gl.uniform1i(uTex, 0);
+      if (uNorm != null) gl.uniform1i(uNorm, 1);
+      if (uDisp != null) gl.uniform1i(uDisp, 2);
+      if (uSpec != null) gl.uniform1i(uSpec, 3);
+      if (uAo != null) gl.uniform1i(uAo, 4);
+    }
     const defWhite = getDefaultTexture(gl, 'white');
     const defNormal = getDefaultTexture(gl, 'normal');
     const defDisp = getDefaultTexture(gl, 'disp');
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex.diffuse || defWhite);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, tex.normal || defNormal);
-    gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, tex.disp || defDisp);
-    gl.activeTexture(gl.TEXTURE3);
-    gl.bindTexture(gl.TEXTURE_2D, tex.spec || defWhite);
-    gl.activeTexture(gl.TEXTURE4);
-    gl.bindTexture(gl.TEXTURE_2D, tex.ao || defWhite);
+    const t0 = tex.diffuse || defWhite;
+    const t1 = tex.normal || defNormal;
+    const t2 = tex.disp || defDisp;
+    const t3 = tex.spec || defWhite;
+    const t4 = tex.ao || defWhite;
+    if (t0 !== renderer._boundTex0) { renderer._boundTex0 = t0; gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, t0); }
+    if (t1 !== renderer._boundTex1) { renderer._boundTex1 = t1; gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, t1); }
+    if (t2 !== renderer._boundTex2) { renderer._boundTex2 = t2; gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, t2); }
+    if (t3 !== renderer._boundTex3) { renderer._boundTex3 = t3; gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, t3); }
+    if (t4 !== renderer._boundTex4) { renderer._boundTex4 = t4; gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, t4); }
   }
 
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
@@ -489,5 +590,6 @@ export function drawSphere3D(gl, renderer, viewProj, opts = {}) {
     gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 0, 0);
   }
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
-  gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+  gl.drawElements(gl.TRIANGLES, indexCount, renderer.indexType || gl.UNSIGNED_SHORT, 0);
+  gl.disable(gl.CULL_FACE);
 }

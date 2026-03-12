@@ -26,6 +26,33 @@ import * as mat4 from '../math/mat4.js';
 /** Cached theme; read once at init, update via setOptions({ theme }) */
 let cachedTheme = 'dark';
 
+function detectPerformanceTier() {
+  const ua = navigator.userAgent || '';
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+  const dpr = window.devicePixelRatio || 1;
+  const cores = navigator.hardwareConcurrency || 2;
+  const memGB = (/** @type {any} */ (navigator)).deviceMemory || 4;
+  if (isMobile || cores <= 2 || memGB <= 2) return 'low';
+  if (cores <= 4 || dpr >= 3 || memGB <= 4) return 'medium';
+  return 'high';
+}
+
+function applyPerfCaps(opts) {
+  const tier = detectPerformanceTier();
+  if (tier === 'low') {
+    if (opts.particleCount > 15000) opts.particleCount = 15000;
+    if (opts.starParticleCount > 8000) opts.starParticleCount = 8000;
+    if ((opts.coreSegmentsLat ?? 64) > 32) opts.coreSegmentsLat = 32;
+    if ((opts.coreSegmentsLon ?? 64) > 32) opts.coreSegmentsLon = 32;
+  } else if (tier === 'medium') {
+    if (opts.particleCount > 35000) opts.particleCount = 35000;
+    if (opts.starParticleCount > 20000) opts.starParticleCount = 20000;
+    if ((opts.coreSegmentsLat ?? 64) > 48) opts.coreSegmentsLat = 48;
+    if ((opts.coreSegmentsLon ?? 64) > 48) opts.coreSegmentsLon = 48;
+  }
+  return opts;
+}
+
 /**
  * @param {WebGLRenderingContext} gl
  * @param {HTMLCanvasElement} canvas
@@ -33,7 +60,7 @@ let cachedTheme = 'dark';
  * @param {Object} options - merged with getDefaultScene3DParams()
  */
 export function initScene(gl, canvas, shaders, options = {}) {
-  const opts = applyScene3DParams({ ...getDefaultScene3DParams(), ...options });
+  const opts = applyPerfCaps(applyScene3DParams({ ...getDefaultScene3DParams(), ...options }));
 
   const has3D = !!(shaders.particles3dVert && shaders.particles3dFrag && shaders.sphere3dVert && shaders.sphere3dFrag);
   if (!has3D) throw new Error('3D shaders required');
@@ -64,17 +91,32 @@ export function initScene(gl, canvas, shaders, options = {}) {
   let lastW = 0;
   let lastH = 0;
   let lastAspect = 0;
+  let lastFov = 0;
+  let lastNear = 0;
+  let lastFar = 0;
   const PARTICLE_COUNT_WARN = 80000;
   const FPS_WARN = 25;
+
+  const _coreOpts = {};
+  const _camPos = [0, 0, 0];
+  let _cachedParticleHex = '';
+  let _cachedParticleRgb = null;
+  let _cachedStarHex = '';
+  let _cachedStarRgb = null;
+  let _cachedBgHex = '';
+  let _cachedBgRgb = null;
 
   cachedTheme = (typeof document !== 'undefined' && document.documentElement)
     ? (document.documentElement.getAttribute('data-theme') || 'dark')
     : 'dark';
 
+  const _perfTier = detectPerformanceTier();
+  const _maxDpr = _perfTier === 'low' ? 1.5 : _perfTier === 'medium' ? 2 : 3;
+
   function resize() {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = canvas.clientWidth * dpr;
-    const h = canvas.clientHeight * dpr;
+    const dpr = Math.min(_maxDpr, window.devicePixelRatio || 1);
+    const w = Math.round(canvas.clientWidth * dpr);
+    const h = Math.round(canvas.clientHeight * dpr);
     if (w !== lastW || h !== lastH) {
       lastW = w;
       lastH = h;
@@ -108,7 +150,8 @@ export function initScene(gl, canvas, shaders, options = {}) {
 
     const theme = cachedTheme;
     const bgHex = opts.backgroundColorHex && typeof opts.backgroundColorHex === 'string' ? opts.backgroundColorHex.trim() : '';
-    const bgRgb = bgHex ? parseHexToRgb(bgHex) : null;
+    if (bgHex !== _cachedBgHex) { _cachedBgHex = bgHex; _cachedBgRgb = bgHex ? parseHexToRgb(bgHex) : null; }
+    const bgRgb = _cachedBgRgb;
     if (bgRgb && (bgRgb[0] !== undefined || bgRgb[1] !== undefined || bgRgb[2] !== undefined)) {
       gl.clearColor(bgRgb[0], bgRgb[1], bgRgb[2], 1);
     } else if (theme === 'light') {
@@ -122,9 +165,14 @@ export function initScene(gl, canvas, shaders, options = {}) {
     else gl.disable(gl.DEPTH_TEST);
 
     const fovRad = ((opts.fov ?? 45) * Math.PI) / 180;
-    if (aspect !== lastAspect) {
+    const nearVal = opts.near ?? 0.1;
+    const farVal = opts.far ?? 100;
+    if (aspect !== lastAspect || fovRad !== lastFov || nearVal !== lastNear || farVal !== lastFar) {
       lastAspect = aspect;
-      mat4.perspective(proj, fovRad, aspect, opts.near ?? 0.1, opts.far ?? 100);
+      lastFov = fovRad;
+      lastNear = nearVal;
+      lastFar = farVal;
+      mat4.perspective(proj, fovRad, aspect, nearVal, farVal);
     }
     const dist = opts.cameraZ ?? 5.5;
     const angleX = opts.cameraAngleX ?? 0;
@@ -136,9 +184,9 @@ export function initScene(gl, canvas, shaders, options = {}) {
     const camX = (dist * cosX * sinY) + (opts.cameraX ?? 0);
     const camY = (dist * sinX) + (opts.cameraY ?? 0);
     const camZ = dist * cosX * cosY;
-    const tX = opts.targetX !== undefined ? opts.targetX : (opts.cameraPanX ?? 0);
-    const tY = opts.targetY !== undefined ? opts.targetY : (opts.cameraPanY ?? 0);
-    const tZ = opts.targetZ !== undefined ? opts.targetZ : (opts.cameraPanZ ?? 0);
+    const tX = (opts.targetX ?? 0) + (opts.cameraPanX ?? 0);
+    const tY = (opts.targetY ?? 0) + (opts.cameraPanY ?? 0);
+    const tZ = (opts.targetZ ?? 0) + (opts.cameraPanZ ?? 0);
     mat4.lookAt(view, camX, camY, camZ, tX, tY, tZ, 0, 1, 0);
     mat4.multiply(viewProj, proj, view);
 
@@ -172,89 +220,91 @@ export function initScene(gl, canvas, shaders, options = {}) {
       }
       if (!opts.coreTextureUrl) lastLoadedDiffuseUrl = '';
       if (!opts.coreNormalMapUrl) lastLoadedNormalUrl = '';
-      const coreDrawOpts = {
-        time,
-        coreDisplayMode: opts.coreDisplayMode,
-        coreRadius: opts.coreRadius,
-        coreGlowStrength: opts.coreGlowStrength,
-        coreGlowAmbient: opts.coreGlowAmbient,
-        coreGlowRadial: opts.coreGlowRadial,
-        coreRotationSpeed: opts.coreRotationSpeed,
-        bloomEnabled: opts.bloomEnabled,
-        bloomRange: opts.bloomRange,
-        coreTextureUrl: opts.coreTextureUrl,
-        coreNormalMapUrl: opts.coreNormalMapUrl,
-        coreTextureStrength: opts.coreTextureStrength,
-        coreNormalStrength: opts.coreNormalStrength,
-        coreDispStrength: opts.coreDispStrength,
-        coreSpecStrength: opts.coreSpecStrength,
-        coreOccStrength: opts.coreOccStrength,
-        coreBrightnessMin: opts.coreBrightnessMin,
-        coreBrightnessMax: opts.coreBrightnessMax,
-        coreTextureType: opts.coreTextureType,
-        coreZExponent: opts.coreZExponent,
-        coreBevelSize: opts.coreBevelSize,
-        noiseType: opts.noiseType,
-        noisePeriod: opts.noisePeriod,
-        noiseHarmonics: opts.noiseHarmonics,
-        noiseAmplitude: opts.noiseAmplitude,
-        noiseSpeed: opts.noiseSpeed,
-        noiseOffsetX: opts.noiseOffsetX,
-        noiseOffsetY: opts.noiseOffsetY,
-        noiseOffsetZ: opts.noiseOffsetZ,
-        cameraPosition: [camX, camY, camZ],
-        lightDirX: opts.lightDirX,
-        lightDirY: opts.lightDirY,
-        lightDirZ: opts.lightDirZ,
-        lightHeight: opts.lightHeight,
-        lightDirection: opts.lightDirection,
-        lightIntensity: opts.lightIntensity,
-        ambientStrength: opts.ambientStrength,
-        fresnelColorHex: opts.fresnelColorHex,
-        fresnelPower: opts.fresnelPower,
-        fresnelStrength: opts.fresnelStrength,
-        ambientColorHex: opts.ambientColorHex,
-        fogEnabled: opts.fogEnabled,
-        fogType: opts.fogType,
-        fogNear: opts.fogNear,
-        fogFar: opts.fogFar,
-        fogDensity: opts.fogDensity,
-        fogColorHex: opts.fogColorHex,
-      };
+      _coreOpts.time = time;
+      _coreOpts.coreDisplayMode = opts.coreDisplayMode;
+      _coreOpts.coreRadius = opts.coreRadius;
+      _coreOpts.coreGlowStrength = opts.coreGlowStrength;
+      _coreOpts.coreGlowAmbient = opts.coreGlowAmbient;
+      _coreOpts.coreGlowRadial = opts.coreGlowRadial;
+      _coreOpts.coreRotationSpeed = opts.coreRotationSpeed;
+      _coreOpts.bloomEnabled = opts.bloomEnabled;
+      _coreOpts.bloomRange = opts.bloomRange;
+      _coreOpts.coreTextureUrl = opts.coreTextureUrl;
+      _coreOpts.coreNormalMapUrl = opts.coreNormalMapUrl;
+      _coreOpts.coreTextureStrength = opts.coreTextureStrength;
+      _coreOpts.coreNormalStrength = opts.coreNormalStrength;
+      _coreOpts.coreDispStrength = opts.coreDispStrength;
+      _coreOpts.coreSpecStrength = opts.coreSpecStrength;
+      _coreOpts.coreOccStrength = opts.coreOccStrength;
+      _coreOpts.coreBrightnessMin = opts.coreBrightnessMin;
+      _coreOpts.coreBrightnessMax = opts.coreBrightnessMax;
+      _coreOpts.coreTextureType = opts.coreTextureType;
+      _coreOpts.coreZExponent = opts.coreZExponent;
+      _coreOpts.coreBevelSize = opts.coreBevelSize;
+      _coreOpts.noiseType = opts.noiseType;
+      _coreOpts.noisePeriod = opts.noisePeriod;
+      _coreOpts.noiseHarmonics = opts.noiseHarmonics;
+      _coreOpts.noiseAmplitude = opts.noiseAmplitude;
+      _coreOpts.noiseSpeed = opts.noiseSpeed;
+      _coreOpts.noiseOffsetX = opts.noiseOffsetX;
+      _coreOpts.noiseOffsetY = opts.noiseOffsetY;
+      _coreOpts.noiseOffsetZ = opts.noiseOffsetZ;
+      _camPos[0] = camX; _camPos[1] = camY; _camPos[2] = camZ;
+      _coreOpts.cameraPosition = _camPos;
+      _coreOpts.lightDirX = opts.lightDirX;
+      _coreOpts.lightDirY = opts.lightDirY;
+      _coreOpts.lightDirZ = opts.lightDirZ;
+      _coreOpts.lightHeight = opts.lightHeight;
+      _coreOpts.lightDirection = opts.lightDirection;
+      _coreOpts.lightIntensity = opts.lightIntensity;
+      _coreOpts.ambientStrength = opts.ambientStrength;
+      _coreOpts.fresnelColorHex = opts.fresnelColorHex;
+      _coreOpts.fresnelPower = opts.fresnelPower;
+      _coreOpts.fresnelStrength = opts.fresnelStrength;
+      _coreOpts.ambientColorHex = opts.ambientColorHex;
+      _coreOpts.fogEnabled = opts.fogEnabled;
+      _coreOpts.fogType = opts.fogType;
+      _coreOpts.fogNear = opts.fogNear;
+      _coreOpts.fogFar = opts.fogFar;
+      _coreOpts.fogDensity = opts.fogDensity;
+      _coreOpts.fogColorHex = opts.fogColorHex;
+      _coreOpts._isGlowPass = false;
 
       if (opts.bloomEnabled && opts.bloomRange > 0) {
         gl.depthMask(false);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-        const glowScale = 1.0 + (opts.bloomRange / 100) * 0.5;
-        drawSphere3D(gl, sphere3DRenderer, viewProj, {
-          ...coreDrawOpts,
-          coreRadius: opts.coreRadius * glowScale,
-          _isGlowPass: true,
-        });
+        const savedRadius = _coreOpts.coreRadius;
+        _coreOpts.coreRadius = opts.coreRadius * (1.0 + (opts.bloomRange / 100) * 0.5);
+        _coreOpts._isGlowPass = true;
+        drawSphere3D(gl, sphere3DRenderer, viewProj, _coreOpts);
+        _coreOpts.coreRadius = savedRadius;
+        _coreOpts._isGlowPass = false;
         gl.depthMask((opts.coreDepthWrite ?? 1) !== 0);
         if (blendMode === 'additive') gl.blendFunc(gl.ONE, gl.ONE);
         else if (blendMode === 'screen') gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR);
         else gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       }
-      drawSphere3D(gl, sphere3DRenderer, viewProj, coreDrawOpts);
+      drawSphere3D(gl, sphere3DRenderer, viewProj, _coreOpts);
     }
 
     updateParticles3D(particleStateRef.current, opts, smoothDt, time);
     updateStarParticles3D(starParticleStateRef.current, opts, smoothDt, time);
-    let particleColor = null;
-    if (opts.particleColorHex && parseHexToRgb(opts.particleColorHex)) {
-      particleColor = parseHexToRgb(opts.particleColorHex);
+    if (opts.particleColorHex !== _cachedParticleHex) {
+      _cachedParticleHex = opts.particleColorHex || '';
+      _cachedParticleRgb = _cachedParticleHex ? parseHexToRgb(_cachedParticleHex) : null;
     }
+    let particleColor = _cachedParticleRgb;
     if (!particleColor) {
       const gradientName = opts.particleGradient && PARTICLE_GRADIENTS[opts.particleGradient]
         ? opts.particleGradient
         : DEFAULT_GRADIENT;
       particleColor = PARTICLE_GRADIENTS[gradientName] ?? PARTICLE_GRADIENTS[DEFAULT_GRADIENT];
     }
-    let starColor = null;
-    if (opts.starParticleColorHex && parseHexToRgb(opts.starParticleColorHex)) {
-      starColor = parseHexToRgb(opts.starParticleColorHex);
+    if (opts.starParticleColorHex !== _cachedStarHex) {
+      _cachedStarHex = opts.starParticleColorHex || '';
+      _cachedStarRgb = _cachedStarHex ? parseHexToRgb(_cachedStarHex) : null;
     }
+    let starColor = _cachedStarRgb;
     if (!starColor) {
       const starGradientName = opts.starParticleGradient && PARTICLE_GRADIENTS[opts.starParticleGradient]
         ? opts.starParticleGradient
@@ -306,6 +356,7 @@ export function initScene(gl, canvas, shaders, options = {}) {
       const prevStarCount = opts.starParticleCount;
       const prevLat = opts.coreSegmentsLat;
       const prevLon = opts.coreSegmentsLon;
+      const prevFlat = opts.coreShadingFlat;
       const next = applyScene3DParams({ ...opts, ...opt });
       Object.assign(opts, next);
       if (opt.particleGradient != null && typeof opt.particleGradient === 'string') {
@@ -318,8 +369,8 @@ export function initScene(gl, canvas, shaders, options = {}) {
       if (prevStarCount !== opts.starParticleCount) {
         starParticleStateRef.current = createStarParticles3D(opts.starParticleCount ?? 0, opts);
       }
-      if (prevLat !== opts.coreSegmentsLat || prevLon !== opts.coreSegmentsLon) {
-        updateSphere3DGeometry(sphere3DRenderer, gl, opts.coreSegmentsLat ?? 24, opts.coreSegmentsLon ?? 32);
+      if (prevLat !== opts.coreSegmentsLat || prevLon !== opts.coreSegmentsLon || prevFlat !== opts.coreShadingFlat) {
+        updateSphere3DGeometry(sphere3DRenderer, gl, opts.coreSegmentsLat ?? 24, opts.coreSegmentsLon ?? 32, !!opts.coreShadingFlat);
       }
     },
     getOptions: () => ({ ...opts }),
