@@ -470,7 +470,7 @@ export function drawSphere3D(gl, renderer, viewProj, opts = {}) {
   _modelBuf[0] = scale * c; _modelBuf[1] = 0; _modelBuf[2] = scale * s; _modelBuf[3] = 0;
   _modelBuf[4] = 0; _modelBuf[5] = scale; _modelBuf[6] = 0; _modelBuf[7] = 0;
   _modelBuf[8] = -scale * s; _modelBuf[9] = 0; _modelBuf[10] = scale * c; _modelBuf[11] = 0;
-  _modelBuf[12] = 0; _modelBuf[13] = 0; _modelBuf[14] = 0; _modelBuf[15] = 1;
+  _modelBuf[12] = opts.sceneOffsetX ?? 0; _modelBuf[13] = opts.sceneOffsetY ?? 0; _modelBuf[14] = opts.sceneOffsetZ ?? 0; _modelBuf[15] = 1;
   gl.uniformMatrix4fv(viewProjLoc, false, viewProj);
   gl.uniformMatrix4fv(modelLoc, false, _modelBuf);
   gl.uniform3fv(colorLoc, [0.85, 0.92, 1.0]);

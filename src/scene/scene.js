@@ -184,9 +184,9 @@ export function initScene(gl, canvas, shaders, options = {}) {
     const camX = (dist * cosX * sinY) + (opts.cameraX ?? 0);
     const camY = (dist * sinX) + (opts.cameraY ?? 0);
     const camZ = dist * cosX * cosY;
-    const tX = (opts.targetX ?? 0) + (opts.cameraPanX ?? 0);
-    const tY = (opts.targetY ?? 0) + (opts.cameraPanY ?? 0);
-    const tZ = (opts.targetZ ?? 0) + (opts.cameraPanZ ?? 0);
+    const tX = opts.targetX ?? 0;
+    const tY = opts.targetY ?? 0;
+    const tZ = opts.targetZ ?? 0;
     mat4.lookAt(view, camX, camY, camZ, tX, tY, tZ, 0, 1, 0);
     mat4.multiply(viewProj, proj, view);
 
@@ -221,6 +221,9 @@ export function initScene(gl, canvas, shaders, options = {}) {
       if (!opts.coreTextureUrl) lastLoadedDiffuseUrl = '';
       if (!opts.coreNormalMapUrl) lastLoadedNormalUrl = '';
       _coreOpts.time = time;
+      _coreOpts.sceneOffsetX = opts.cameraPanX ?? 0;
+      _coreOpts.sceneOffsetY = opts.cameraPanY ?? 0;
+      _coreOpts.sceneOffsetZ = opts.cameraPanZ ?? 0;
       _coreOpts.coreDisplayMode = opts.coreDisplayMode;
       _coreOpts.coreRadius = opts.coreRadius;
       _coreOpts.coreGlowStrength = opts.coreGlowStrength;
@@ -287,6 +290,9 @@ export function initScene(gl, canvas, shaders, options = {}) {
       drawSphere3D(gl, sphere3DRenderer, viewProj, _coreOpts);
     }
 
+    opts.sceneOffsetX = opts.cameraPanX ?? 0;
+    opts.sceneOffsetY = opts.cameraPanY ?? 0;
+    opts.sceneOffsetZ = opts.cameraPanZ ?? 0;
     updateParticles3D(particleStateRef.current, opts, smoothDt, time);
     updateStarParticles3D(starParticleStateRef.current, opts, smoothDt, time);
     if (opts.particleColorHex !== _cachedParticleHex) {

@@ -50,12 +50,15 @@ function spawnParticle(state, i, params) {
   const innerR = PARTICLE_INNER_RADIUS;
   const orbitStr = params.orbitStrength ?? 0.08;
   const sizeMul = getEffectiveMagnitudeParam(params, 'particleSize');
+  const ox = params.sceneOffsetX ?? 0;
+  const oy = params.sceneOffsetY ?? 0;
+  const oz = params.sceneOffsetZ ?? 0;
   const p = randomInDisk(innerR, diskR, diskT);
-  const spx = p[0], spy = p[1], spz = p[2];
+  const spx = p[0] + ox, spy = p[1] + oy, spz = p[2] + oz;
   state.positions[i * 3] = spx;
   state.positions[i * 3 + 1] = spy;
   state.positions[i * 3 + 2] = spz;
-  const tang = tangentInDisk(spx, spy);
+  const tang = tangentInDisk(spx - ox, spy - oy);
   const orbit = (0.3 + Math.random() * 0.7) * orbitStr;
   state.velocities[i * 3] = tang[0] * orbit + (Math.random() - 0.5) * 0.001;
   state.velocities[i * 3 + 1] = tang[1] * orbit + (Math.random() - 0.5) * 0.001;
@@ -117,6 +120,9 @@ export function updateParticles3D(state, opts, dt, time = 0) {
   const lifeMin = Math.max(0.5, opts.particleLifetimeMin ?? 2);
   const lifeMax = Math.max(lifeMin, opts.particleLifetimeMax ?? 8);
   const deathTimes = state.deathTimes;
+  const ox = opts.sceneOffsetX ?? 0;
+  const oy = opts.sceneOffsetY ?? 0;
+  const oz = opts.sceneOffsetZ ?? 0;
 
   const birthTimes = state.birthTimes;
   for (let i = 0; i < count; i++) {
@@ -128,8 +134,8 @@ export function updateParticles3D(state, opts, dt, time = 0) {
     const px = state.positions[i * 3];
     const py = state.positions[i * 3 + 1];
     const pz = state.positions[i * 3 + 2];
-    const acc = gravityAccel3D(px, py, pz, 0, 0, 0, G, M, minR);
-    const tang = tangentInDisk(px, py);
+    const acc = gravityAccel3D(px, py, pz, ox, oy, oz, G, M, minR);
+    const tang = tangentInDisk(px - ox, py - oy);
     let vx = state.velocities[i * 3] + acc[0] * dt;
     let vy = state.velocities[i * 3 + 1] + acc[1] * dt;
     let vz = state.velocities[i * 3 + 2] + acc[2] * dt;
@@ -179,12 +185,13 @@ export function updateParticles3D(state, opts, dt, time = 0) {
       ny += Math.cos(phase * 1.1) * particleNoiseAmt * 0.02;
       nz += Math.sin(phase * 0.9) * particleNoiseAmt * 0.01;
     }
-    const r2 = nx * nx + ny * ny;
+    const lx = nx - ox, ly = ny - oy;
+    const r2 = lx * lx + ly * ly;
     const r = Math.sqrt(r2) || 0.01;
     if (r > diskR) {
       const s = diskR / r;
-      nx *= s;
-      ny *= s;
+      nx = ox + lx * s;
+      ny = oy + ly * s;
       const tn = vx * tang[0] + vy * tang[1];
       state.velocities[i * 3] = tang[0] * tn * 0.4;
       state.velocities[i * 3 + 1] = tang[1] * tn * 0.4;
@@ -195,7 +202,7 @@ export function updateParticles3D(state, opts, dt, time = 0) {
       state.velocities[i * 3 + 2] = vz;
     }
     if (diskT > 0) {
-      nz = Math.max(-diskT, Math.min(diskT, nz));
+      nz = Math.max(oz - diskT, Math.min(oz + diskT, nz));
     }
     state.positions[i * 3] = nx;
     state.positions[i * 3 + 1] = ny;
@@ -233,12 +240,15 @@ function spawnStarParticle(state, i, params) {
   const starR = params.starRadius ?? 1.2;
   const orbitStr = params.orbitStrength ?? 0.08;
   const sizeMul = params.starParticleSize ?? 0.5;
+  const ox = params.sceneOffsetX ?? 0;
+  const oy = params.sceneOffsetY ?? 0;
+  const oz = params.sceneOffsetZ ?? 0;
   const p = randomInSphere(starR);
-  const spx = p[0], spy = p[1], spz = p[2];
+  const spx = p[0] + ox, spy = p[1] + oy, spz = p[2] + oz;
   state.positions[i * 3] = spx;
   state.positions[i * 3 + 1] = spy;
   state.positions[i * 3 + 2] = spz;
-  const tang = tangentToSphere(spx, spy, spz);
+  const tang = tangentToSphere(spx - ox, spy - oy, spz - oz);
   const orbit = (0.2 + Math.random() * 0.6) * orbitStr;
   state.velocities[i * 3] = tang[0] * orbit + (Math.random() - 0.5) * 0.002;
   state.velocities[i * 3 + 1] = tang[1] * orbit + (Math.random() - 0.5) * 0.002;
@@ -299,6 +309,9 @@ export function updateStarParticles3D(state, opts, dt, time = 0) {
   const lifeMax = Math.max(lifeMin, opts.starParticleLifetimeMax ?? opts.particleLifetimeMax ?? 8);
   const starNoiseAmt = opts.starParticleNoiseAmount ?? opts.particleNoiseAmount ?? 0.2;
   const starNoiseSpd = opts.starParticleNoiseSpeed ?? opts.particleNoiseSpeed ?? 3;
+  const ox = opts.sceneOffsetX ?? 0;
+  const oy = opts.sceneOffsetY ?? 0;
+  const oz = opts.sceneOffsetZ ?? 0;
 
   for (let i = 0; i < count; i++) {
     if (deathTimes && time >= deathTimes[i]) {
@@ -309,12 +322,13 @@ export function updateStarParticles3D(state, opts, dt, time = 0) {
     const px = state.positions[i * 3];
     const py = state.positions[i * 3 + 1];
     const pz = state.positions[i * 3 + 2];
-    const acc = gravityAccel3D(px, py, pz, 0, 0, 0, G, M, minR);
-    const r = Math.sqrt(px * px + py * py + pz * pz) || 0.01;
-    const horiz = Math.sqrt(px * px + pz * pz) || 0.01;
-    const tangX = pz / horiz;
+    const acc = gravityAccel3D(px, py, pz, ox, oy, oz, G, M, minR);
+    const lpx = px - ox, lpy = py - oy, lpz = pz - oz;
+    const r = Math.sqrt(lpx * lpx + lpy * lpy + lpz * lpz) || 0.01;
+    const horiz = Math.sqrt(lpx * lpx + lpz * lpz) || 0.01;
+    const tangX = lpz / horiz;
     const tangY = 0;
-    const tangZ = -px / horiz;
+    const tangZ = -lpx / horiz;
     let vx = state.velocities[i * 3] + acc[0] * dt;
     let vy = state.velocities[i * 3 + 1] + acc[1] * dt;
     let vz = state.velocities[i * 3 + 2] + acc[2] * dt;
@@ -355,16 +369,18 @@ export function updateStarParticles3D(state, opts, dt, time = 0) {
       ny += Math.cos(phase * 1.1) * starNoiseAmt * 0.02;
       nz += Math.sin(phase * 0.9) * starNoiseAmt * 0.01;
     }
-    const dist = Math.sqrt(nx * nx + ny * ny + nz * nz) || 0.01;
+    const dx = nx - ox, dy = ny - oy, dz = nz - oz;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.01;
     if (dist > starR) {
       const s = starR / dist;
-      nx *= s;
-      ny *= s;
-      nz *= s;
-      const vn = (vx * nx + vy * ny + vz * nz) / starR;
-      state.velocities[i * 3] = (vx - (vn * nx / starR)) * 0.4;
-      state.velocities[i * 3 + 1] = (vy - (vn * ny / starR)) * 0.4;
-      state.velocities[i * 3 + 2] = (vz - (vn * nz / starR)) * 0.4;
+      nx = ox + dx * s;
+      ny = oy + dy * s;
+      nz = oz + dz * s;
+      const rdx = nx - ox, rdy = ny - oy, rdz = nz - oz;
+      const vn = (vx * rdx + vy * rdy + vz * rdz) / starR;
+      state.velocities[i * 3] = (vx - (vn * rdx / starR)) * 0.4;
+      state.velocities[i * 3 + 1] = (vy - (vn * rdy / starR)) * 0.4;
+      state.velocities[i * 3 + 2] = (vz - (vn * rdz / starR)) * 0.4;
     } else {
       state.velocities[i * 3] = vx;
       state.velocities[i * 3 + 1] = vy;
