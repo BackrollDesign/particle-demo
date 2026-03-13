@@ -44,14 +44,14 @@ describe('scene3d-params', () => {
     it('returns particleGradient and all schema defaults (preset 1)', () => {
       const p = getDefaultScene3DParams();
       expect(p.particleGradient).toBe(DEFAULT_GRADIENT);
-      expect(p.particleColorHex).toBe('#3874ff');
+      expect(p.particleColorHex).toBe('#b8e4ff');
       expect(p.magnitudeLevel).toBe(1);
       expect(p.G).toBe(-100);
       expect(p.coreGlowStrength).toBe(100);
       expect(p.windX).toBe(-8);
       expect(p.waveAmplitude).toBe(0);
-      expect(p.coreBlendMode).toBe('additive');
-      expect(p.cameraPanX).toBe(1);
+      expect(p.coreBlendMode).toBe('screen');
+      expect(p.cameraPanX).toBe(-0.14);
       expect(p.bloomEnabled).toBe(1);
     });
     it('includes core texture and noise defaults', () => {
@@ -59,8 +59,8 @@ describe('scene3d-params', () => {
       expect(p.coreTextureType).toBe('uv');
       expect(p.coreZExponent).toBe(1);
       expect(p.noiseType).toBe('none');
-      expect(p.coreBrightnessMin).toBe(-0.54);
-      expect(p.coreBrightnessMax).toBe(2);
+      expect(p.coreBrightnessMin).toBe(-0.24);
+      expect(p.coreBrightnessMax).toBe(1.54);
     });
     it('includes particle noise and lifetime params', () => {
       const p = getDefaultScene3DParams();
@@ -73,8 +73,8 @@ describe('scene3d-params', () => {
       const p = getDefaultScene3DParams();
       expect(p.coreEnabled).toBe(1);
       expect(p.starParticleCount).toBe(40000);
-      expect(p.starRadius).toBe(4.6);
-      expect(p.starParticleSize).toBe(0.01);
+      expect(p.starRadius).toBe(5);
+      expect(p.starParticleSize).toBe(9.96);
     });
     it('includes fog, camera target, core display and depth write defaults', () => {
       const p = getDefaultScene3DParams();
@@ -82,8 +82,8 @@ describe('scene3d-params', () => {
       expect(p.fogDensity).toBe(0.001);
       expect(p.targetX).toBe(1);
       expect(p.targetY).toBe(1);
-      expect(p.targetZ).toBe(-1);
-      expect(p.coreDisplayMode).toBe('planet');
+      expect(p.targetZ).toBe(0.06);
+      expect(p.coreDisplayMode).toBe('star');
       expect(p.coreDepthWrite).toBe(1);
       expect(p.particleDepthWrite).toBe(0);
       expect(p.depthTestEnabled).toBe(1);
@@ -121,7 +121,7 @@ describe('scene3d-params', () => {
     });
     it('ignores invalid coreBlendMode and keeps default', () => {
       const out = applyScene3DParams({ coreBlendMode: 'invalid' });
-      expect(['normal', 'additive']).toContain(out.coreBlendMode);
+      expect(['normal', 'additive', 'screen']).toContain(out.coreBlendMode);
     });
     it('accepts particleGradient string', () => {
       const out = applyScene3DParams({ particleGradient: 'cyan' });
