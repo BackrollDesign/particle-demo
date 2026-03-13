@@ -332,27 +332,35 @@ function getDefaultTexture(gl, kind = 'white') {
 
 const MAX_TEXTURE_DIMENSION = 2048;
 
+let _resizeCanvas = null;
+
 /** Returns a canvas with the image drawn, scaled down if larger than MAX_TEXTURE_DIMENSION. */
 function limitImageSize(img) {
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
   if (w <= MAX_TEXTURE_DIMENSION && h <= MAX_TEXTURE_DIMENSION) return img;
   const scale = Math.min(MAX_TEXTURE_DIMENSION / w, MAX_TEXTURE_DIMENSION / h, 1);
-  const c = document.createElement('canvas');
-  c.width = Math.max(1, Math.floor(w * scale));
-  c.height = Math.max(1, Math.floor(h * scale));
-  const ctx = c.getContext('2d');
-  if (ctx) ctx.drawImage(img, 0, 0, c.width, c.height);
-  return c;
+  if (!_resizeCanvas) _resizeCanvas = document.createElement('canvas');
+  _resizeCanvas.width = Math.max(1, Math.floor(w * scale));
+  _resizeCanvas.height = Math.max(1, Math.floor(h * scale));
+  const ctx = _resizeCanvas.getContext('2d');
+  if (ctx) ctx.drawImage(img, 0, 0, _resizeCanvas.width, _resizeCanvas.height);
+  return _resizeCanvas;
 }
+
+const LOAD_IMAGE_TIMEOUT = 10000;
 
 function loadImage(url) {
   return new Promise((resolve) => {
     if (!url) { resolve(null); return; }
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) { settled = true; resolve(null); }
+    }, LOAD_IMAGE_TIMEOUT);
+    img.onload = () => { if (!settled) { settled = true; clearTimeout(timer); resolve(img); } };
+    img.onerror = () => { if (!settled) { settled = true; clearTimeout(timer); resolve(null); } };
     img.src = url;
   });
 }

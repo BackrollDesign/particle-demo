@@ -107,11 +107,14 @@ export function createFilterPanel(container, onChange, options = {}) {
         if (normalized) {
           hexField.value = normalized;
           picker.value = normalized;
+          hexField.classList.remove('filter-hex-invalid');
           if (label) label.textContent = normalized.replace(/^#/, '');
         } else if (allowEmpty) {
           hexField.value = '';
+          hexField.classList.remove('filter-hex-invalid');
           if (label) label.textContent = '—';
         } else {
+          hexField.classList.add('filter-hex-invalid');
           if (label) label.textContent = hexField.value.trim().replace(/^#/, '') || '—';
         }
         notify();
@@ -345,6 +348,8 @@ export function createFilterPanel(container, onChange, options = {}) {
       textureFileNamesFromDnd.ao = opts.coreOccMapUrl.split(/[/\\]/).pop() || '';
     }
     updateDndLabel();
+    const etg = container.querySelector('#envmap-toggle');
+    if (etg) etg.checked = (opts.coreTextureStrength ?? 1) > 0;
   };
 
   const loadPresetFromJSON = (json) => {
@@ -354,10 +359,13 @@ export function createFilterPanel(container, onChange, options = {}) {
         const migrated = migratePreset(data);
         onChange(migrated);
         setTimeout(syncFromOptions, 0);
-        return true;
+        return { ok: true };
       }
-    } catch (e) { console.warn('filter panel: load preset from JSON', e); }
-    return false;
+      return { ok: false, reason: 'Not a valid preset object' };
+    } catch (e) {
+      console.warn('filter panel: load preset from JSON', e);
+      return { ok: false, reason: e instanceof SyntaxError ? 'Invalid JSON syntax' : String(e.message || 'Unknown error') };
+    }
   };
 
   const presetFileInput = container.querySelector('#preset-file-input');
@@ -369,13 +377,13 @@ export function createFilterPanel(container, onChange, options = {}) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const ok = loadPresetFromJSON(reader.result);
+      const result = loadPresetFromJSON(reader.result);
       if (presetDndLabel) {
-        presetDndLabel.textContent = ok ? `Loaded: ${file.name}` : 'JSON error';
+        presetDndLabel.textContent = result.ok ? `Loaded: ${file.name}` : (result.reason || 'Load failed');
         setTimeout(() => { if (presetDndLabel) presetDndLabel.textContent = 'Drop preset .json here'; }, 2500);
       }
       if (loadPresetBtn) {
-        loadPresetBtn.textContent = ok ? 'Loaded' : 'Error';
+        loadPresetBtn.textContent = result.ok ? 'Loaded' : 'Error';
         setTimeout(() => { if (loadPresetBtn) loadPresetBtn.textContent = 'Load'; }, 1500);
       }
     };
@@ -423,6 +431,21 @@ export function createFilterPanel(container, onChange, options = {}) {
     tab.addEventListener('click', tabClickHandler);
     tabRefs.push({ tab, fn: tabClickHandler });
   });
+
+  const envmapToggle = container.querySelector('#envmap-toggle');
+  let _savedTexStrength = 1;
+  if (envmapToggle) {
+    envmapToggle.addEventListener('change', () => {
+      if (envmapToggle.checked) {
+        onChange({ coreTextureStrength: _savedTexStrength });
+      } else {
+        const cur = getOptions?.() ?? {};
+        _savedTexStrength = cur.coreTextureStrength ?? 1;
+        onChange({ coreTextureStrength: 0 });
+      }
+      setTimeout(syncFromOptions, 0);
+    });
+  }
 
   const dndZone = container.querySelector('#core-texture-dnd');
   const fileInput = container.querySelector('#core-texture-file');

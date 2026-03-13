@@ -145,8 +145,7 @@ export function initScene(gl, canvas, shaders, options = {}) {
       currentPerfWarning = null;
     }
 
-    const resolution = { width: canvas.width, height: canvas.height };
-    const aspect = resolution.width / resolution.height;
+    const aspect = (canvas.width / canvas.height) || 1;
 
     const theme = cachedTheme;
     const bgHex = opts.backgroundColorHex && typeof opts.backgroundColorHex === 'string' ? opts.backgroundColorHex.trim() : '';

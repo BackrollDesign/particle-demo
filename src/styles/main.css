@@ -520,6 +520,11 @@ html, body { margin: 0; height: 100%; overflow-x: hidden; overflow-y: auto; back
   max-width: none;
   min-width: 0;
 }
+[data-scene3d-filter] .filter-hex-invalid {
+  outline: 2px solid #e53935;
+  outline-offset: -2px;
+  border-radius: 4px;
+}
 [data-scene3d-filter] .filter-input-row {
   display: flex;
   align-items: center;

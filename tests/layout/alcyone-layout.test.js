@@ -9,10 +9,17 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const htmlPath = path.resolve(__dirname, '../../index.html');
+const cssPath = path.resolve(__dirname, '../../src/styles/main.css');
 
 function loadHtml() {
   const fullPath = path.resolve(htmlPath);
   if (!fs.existsSync(fullPath)) throw new Error(`index.html not found: ${fullPath}`);
+  return fs.readFileSync(fullPath, 'utf-8');
+}
+
+function loadCss() {
+  const fullPath = path.resolve(cssPath);
+  if (!fs.existsSync(fullPath)) throw new Error(`main.css not found: ${fullPath}`);
   return fs.readFileSync(fullPath, 'utf-8');
 }
 
@@ -81,16 +88,19 @@ describe('Alcyone layout (Figma 30-643)', () => {
   });
 
   describe('first container = content width (CSS)', () => {
+    let css;
+    beforeAll(() => { css = loadCss(); });
+
     it('left container has fit-content or max-content', () => {
-      expect(html).toMatch(/width:\s*(fit-content|max-content)/);
+      expect(css).toMatch(/width:\s*(fit-content|max-content)/);
     });
 
     it('left container has max-width: 100% for responsive', () => {
-      expect(html).toMatch(/max-width:\s*100%/);
+      expect(css).toMatch(/max-width:\s*100%/);
     });
 
     it('uses clamp for responsive padding', () => {
-      expect(html).toMatch(/clamp\(/);
+      expect(css).toMatch(/clamp\(/);
     });
   });
 

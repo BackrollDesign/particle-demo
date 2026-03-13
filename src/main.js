@@ -36,6 +36,18 @@ function run() {
     return;
   }
 
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    const warn = document.getElementById('scene-perf-warning');
+    if (warn) {
+      warn.textContent = 'WebGL context lost — please reload the page';
+      warn.hidden = false;
+    }
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    window.location.reload();
+  });
+
   const shaders = {
     particles3dVert,
     particles3dFrag,

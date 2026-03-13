@@ -132,4 +132,71 @@ describe('particle-system-3d', () => {
       expect(Array.from(state.positions).every(Number.isFinite)).toBe(true);
     });
   });
+
+  describe('scene offset (sceneOffsetX/Y/Z)', () => {
+    it('disk particles spawn centered around offset', () => {
+      const ox = 5, oy = -3, oz = 1;
+      const state = createParticles3D(200, { diskRadius: 2, diskThickness: 0.08, sceneOffsetX: ox, sceneOffsetY: oy, sceneOffsetZ: oz });
+      let sumX = 0, sumY = 0;
+      for (let i = 0; i < 200; i++) {
+        sumX += state.positions[i * 3];
+        sumY += state.positions[i * 3 + 1];
+      }
+      expect(sumX / 200).toBeCloseTo(ox, 0);
+      expect(sumY / 200).toBeCloseTo(oy, 0);
+    });
+
+    it('star particles spawn centered around offset', () => {
+      const ox = 4, oy = -2, oz = 3;
+      const state = createStarParticles3D(200, { starRadius: 1, starParticleSize: 0.3, sceneOffsetX: ox, sceneOffsetY: oy, sceneOffsetZ: oz });
+      let sumX = 0, sumY = 0, sumZ = 0;
+      for (let i = 0; i < 200; i++) {
+        sumX += state.positions[i * 3];
+        sumY += state.positions[i * 3 + 1];
+        sumZ += state.positions[i * 3 + 2];
+      }
+      expect(sumX / 200).toBeCloseTo(ox, 0);
+      expect(sumY / 200).toBeCloseTo(oy, 0);
+      expect(sumZ / 200).toBeCloseTo(oz, 0);
+    });
+
+    it('disk particles stay within diskRadius of offset center after update', () => {
+      const ox = 10, oy = -5, oz = 0;
+      const state = createParticles3D(80, { diskRadius: 2, sceneOffsetX: ox, sceneOffsetY: oy, sceneOffsetZ: oz });
+      const opts = { G: 1, M: 1, magnitudeLevel: 1, diskRadius: 2, damping: 0.998, sceneOffsetX: ox, sceneOffsetY: oy, sceneOffsetZ: oz };
+      for (let s = 0; s < 100; s++) updateParticles3D(state, opts, 0.016, s * 0.016);
+      for (let i = 0; i < 80; i++) {
+        const r = Math.hypot(state.positions[i * 3] - ox, state.positions[i * 3 + 1] - oy);
+        expect(r).toBeLessThanOrEqual(2.02);
+      }
+    });
+
+    it('star particles stay within starRadius of offset center after update', () => {
+      const ox = -3, oy = 7, oz = 2;
+      const R = 1.5;
+      const state = createStarParticles3D(60, { starRadius: R, sceneOffsetX: ox, sceneOffsetY: oy, sceneOffsetZ: oz });
+      const opts = { G: 1, M: 1, magnitudeLevel: 1, starRadius: R, damping: 0.998, sceneOffsetX: ox, sceneOffsetY: oy, sceneOffsetZ: oz };
+      for (let s = 0; s < 150; s++) updateStarParticles3D(state, opts, 0.016, s * 0.016);
+      for (let i = 0; i < 60; i++) {
+        const dx = state.positions[i * 3] - ox;
+        const dy = state.positions[i * 3 + 1] - oy;
+        const dz = state.positions[i * 3 + 2] - oz;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        expect(dist).toBeLessThanOrEqual(R + 1e-4);
+      }
+    });
+
+    it('gravity pulls disk particles toward offset center, not origin', () => {
+      const ox = 20, oy = 0, oz = 0;
+      const state = createParticles3D(50, { diskRadius: 2, sceneOffsetX: ox, sceneOffsetY: oy, sceneOffsetZ: oz });
+      const opts = { G: -5, M: 1, magnitudeLevel: 1, diskRadius: 2, damping: 0.998, sceneOffsetX: ox, sceneOffsetY: oy, sceneOffsetZ: oz };
+      for (let s = 0; s < 200; s++) updateParticles3D(state, opts, 0.016, s * 0.016);
+      for (let i = 0; i < 50; i++) {
+        expect(Number.isFinite(state.positions[i * 3])).toBe(true);
+      }
+      let sumX = 0;
+      for (let i = 0; i < 50; i++) sumX += state.positions[i * 3];
+      expect(sumX / 50).toBeCloseTo(ox, 0);
+    });
+  });
 });
