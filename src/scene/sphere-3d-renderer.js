@@ -412,12 +412,13 @@ export function loadSphereTexture(gl, renderer, diffuseUrl, opts = {}) {
   renderer._loadInFlight = diffuseUrl;
   const isBlob = String(diffuseUrl).startsWith('blob:');
   const base = getTextureBaseUrl(diffuseUrl);
+  const ext = (String(diffuseUrl).match(/\.(jpg|jpeg|png|webp)$/i) || [, 'jpg'])[1];
   const urls = {
     diffuse: diffuseUrl,
-    normal: normalUrl || (isBlob ? '' : base + '_NORM.jpg'),
-    disp: isBlob ? dispUrl : (base + '_DISP.jpg'),
-    spec: isBlob ? specUrl : (base + '_SPEC.jpg'),
-    ao: isBlob ? occUrl : (base + '_OCC.jpg'),
+    normal: normalUrl || (isBlob ? '' : base + '_NORM.' + ext),
+    disp: dispUrl || (isBlob ? '' : base + '_DISP.' + ext),
+    spec: specUrl || (isBlob ? '' : base + '_SPEC.' + ext),
+    ao: occUrl || (isBlob ? '' : base + '_OCC.' + ext),
   };
   const keys = isBlob
     ? ['diffuse', normalUrl && 'normal', dispUrl && 'disp', specUrl && 'spec', occUrl && 'ao'].filter(Boolean)
