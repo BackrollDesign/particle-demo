@@ -191,8 +191,16 @@ function initFilterPanelSections(panel) {
   });
 }
 
+function initCardHover() {
+  document.querySelectorAll('.alcyone-card').forEach((card) => {
+    card.addEventListener('mouseenter', () => card.classList.add('is-hovered'));
+    card.addEventListener('mouseleave', () => card.classList.remove('is-hovered'));
+  });
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', run);
+  document.addEventListener('DOMContentLoaded', () => { run(); initCardHover(); });
 } else {
   run();
+  initCardHover();
 }

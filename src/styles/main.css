@@ -195,12 +195,16 @@ html, body { margin: 0; height: 100%; overflow-x: hidden; overflow-y: auto; back
   width: 100%;
   transition: transform 0.3s ease;
 }
-.alcyone-card:hover .alcyone-card-title-block {
+.alcyone-card.is-hovered .alcyone-card-title-block {
   transform: translateY(16px);
+}
+.alcyone-card.is-hovered .alcyone-card-arrow {
+  opacity: 1;
 }
 .alcyone-card-title-block .alcyone-card-title-row { align-items: center; }
 .alcyone-card-title-block .alcyone-card-desc { text-align: left; margin-top: var(--space-8, 8px); }
-.alcyone-card:hover {
+.alcyone-card:hover,
+.alcyone-card.is-hovered {
   background: var(--theme-card-hover-bg);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
@@ -208,7 +212,8 @@ html, body { margin: 0; height: 100%; overflow-x: hidden; overflow-y: auto; back
   border-color: var(--theme-card-hover-border);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
-[data-theme="light"] .alcyone-card:hover {
+[data-theme="light"] .alcyone-card:hover,
+[data-theme="light"] .alcyone-card.is-hovered {
   backdrop-filter: blur(48px);
   -webkit-backdrop-filter: blur(48px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
@@ -236,7 +241,8 @@ html, body { margin: 0; height: 100%; overflow-x: hidden; overflow-y: auto; back
   opacity: 0;
   transition: opacity 0.25s ease;
 }
-.alcyone-card:hover .alcyone-card-arrow { opacity: 1; }
+.alcyone-card:hover .alcyone-card-arrow,
+.alcyone-card.is-hovered .alcyone-card-arrow { opacity: 1; }
 .alcyone-card-desc {
   font-size: var(--card-desc-size, 16px);
   line-height: 24px;
