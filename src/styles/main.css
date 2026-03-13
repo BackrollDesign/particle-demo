@@ -196,7 +196,7 @@ html, body { margin: 0; height: 100%; overflow-x: hidden; overflow-y: auto; back
   transition: transform 0.3s ease;
 }
 .alcyone-card:hover .alcyone-card-title-block {
-  transform: translateY(6px);
+  transform: translateY(16px);
 }
 .alcyone-card-title-block .alcyone-card-title-row { align-items: center; }
 .alcyone-card-title-block .alcyone-card-desc { text-align: left; margin-top: var(--space-8, 8px); }
