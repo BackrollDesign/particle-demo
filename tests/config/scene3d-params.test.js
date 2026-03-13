@@ -89,7 +89,7 @@ describe('scene3d-params', () => {
       expect(p.depthTestEnabled).toBe(1);
       expect(p.orbitDamping).toBe(1);
       expect(p.particleStartSize).toBe(0.87);
-      expect(p.particleEndSize).toBe(0);
+      expect(p.particleEndSize).toBe(5.52);
     });
     it('getOptions contract: returns object with all PARAM_SCHEMA keys plus particle/star gradient and color', () => {
       const p = getDefaultScene3DParams();
