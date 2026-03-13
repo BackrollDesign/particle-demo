@@ -44,11 +44,11 @@ describe('scene3d-params', () => {
     it('returns particleGradient and all schema defaults (preset 1)', () => {
       const p = getDefaultScene3DParams();
       expect(p.particleGradient).toBe(DEFAULT_GRADIENT);
-      expect(p.particleColorHex).toBe('#b8e4ff');
+      expect(p.particleColorHex).toBe('#3874ff');
       expect(p.magnitudeLevel).toBe(1);
       expect(p.G).toBe(-100);
-      expect(p.coreGlowStrength).toBe(0.2);
-      expect(p.windX).toBe(0);
+      expect(p.coreGlowStrength).toBe(100);
+      expect(p.windX).toBe(-8);
       expect(p.waveAmplitude).toBe(0);
       expect(p.coreBlendMode).toBe('additive');
       expect(p.cameraPanX).toBe(1);
@@ -59,37 +59,37 @@ describe('scene3d-params', () => {
       expect(p.coreTextureType).toBe('uv');
       expect(p.coreZExponent).toBe(1);
       expect(p.noiseType).toBe('none');
-      expect(p.coreBrightnessMin).toBe(0.1);
-      expect(p.coreBrightnessMax).toBe(0.4);
+      expect(p.coreBrightnessMin).toBe(-0.54);
+      expect(p.coreBrightnessMax).toBe(2);
     });
     it('includes particle noise and lifetime params', () => {
       const p = getDefaultScene3DParams();
-      expect(p.particleNoiseAmount).toBe(0);
+      expect(p.particleNoiseAmount).toBe(0.15);
       expect(p.particleNoiseSpeed).toBe(20);
       expect(p.particleLifetimeMin).toBe(5);
-      expect(p.particleLifetimeMax).toBe(11);
+      expect(p.particleLifetimeMax).toBe(20.5);
     });
     it('includes coreEnabled and star particle defaults from default preset', () => {
       const p = getDefaultScene3DParams();
       expect(p.coreEnabled).toBe(1);
-      expect(p.starParticleCount).toBe(50000);
-      expect(p.starRadius).toBe(5);
-      expect(p.starParticleSize).toBe(3.16);
+      expect(p.starParticleCount).toBe(40000);
+      expect(p.starRadius).toBe(4.6);
+      expect(p.starParticleSize).toBe(0.01);
     });
     it('includes fog, camera target, core display and depth write defaults', () => {
       const p = getDefaultScene3DParams();
-      expect(p.fogType).toBe('linear');
-      expect(p.fogDensity).toBe(0.321);
-      expect(p.targetX).toBe(-0.03);
+      expect(p.fogType).toBe('exponential');
+      expect(p.fogDensity).toBe(0.001);
+      expect(p.targetX).toBe(1);
       expect(p.targetY).toBe(1);
       expect(p.targetZ).toBe(-1);
-      expect(p.coreDisplayMode).toBe('star');
+      expect(p.coreDisplayMode).toBe('planet');
       expect(p.coreDepthWrite).toBe(1);
       expect(p.particleDepthWrite).toBe(0);
       expect(p.depthTestEnabled).toBe(1);
       expect(p.orbitDamping).toBe(1);
-      expect(p.particleStartSize).toBe(0);
-      expect(p.particleEndSize).toBe(2.33);
+      expect(p.particleStartSize).toBe(0.87);
+      expect(p.particleEndSize).toBe(0);
     });
     it('getOptions contract: returns object with all PARAM_SCHEMA keys plus particle/star gradient and color', () => {
       const p = getDefaultScene3DParams();
